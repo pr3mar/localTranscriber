@@ -40,8 +40,8 @@ and the LLM never compete for VRAM.
   language detection yet).
 - Macedonian and Serbian output is always Cyrillic (deterministic per-language Latin→Cyrillic
   transliteration).
-- Translation uses JSON keyed by cue id with Ollama structured output; on invalid reply: retry, then split
-  the batch, down to single cues. English cues stay within their source cue's span (long ones are split).
+- Translation uses JSON keyed by sentence unit with Ollama structured output; on invalid reply: retry, then split
+  the batch, down to single units. English cues start and end inside source cue spans, usually one source cue's span (long ones are split).
 - Stages skip when their output exists (resumable) unless `--overwrite`; `.srt` writes are atomic.
 - One failing file never stops a batch; summary at the end, non-zero exit if any failed.
 

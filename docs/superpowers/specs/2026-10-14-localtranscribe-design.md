@@ -53,7 +53,7 @@ Folder input: process all media files in the folder (non-recursive), by extensio
 Written next to the input file:
 
 - `<name>.<lang>.srt` — source-language subtitles.
-- `<name>.en.srt` — English subtitles (with `--translate`), every English cue lies within the time span of its source cue. Over-long translations are split into several cues, so the English file may have more cues than the source.
+- `<name>.en.srt` — English subtitles (with `--translate`), every English cue starts and ends inside source cue spans, usually a single source cue's span (it can cover several cues of the same sentence unit). Over-long translations are split into several cues, so the English file may have more cues than the source.
 
 Macedonian and Serbian output is always **Cyrillic**.
 
