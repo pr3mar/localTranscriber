@@ -55,7 +55,7 @@ Written next to the input file:
 - `<name>.<lang>.srt` — source-language subtitles.
 - `<name>.en.srt` — English subtitles (with `--translate`), **identical cue count and timings** to the source file.
 
-Serbian output is always **Cyrillic**.
+Macedonian and Serbian output is always **Cyrillic**.
 
 ## 3. Pipeline
 
@@ -66,7 +66,7 @@ input file/folder
   │                          sl / es / en → Parakeet TDT 0.6B v3 (NVIDIA NeMo)
   │                          mk / sr      → Whisper large-v3 (faster-whisper)
   ├─ 3. build cues         segments → readable subtitle cues
-  ├─ 4. post-process       sr only: Latin → Cyrillic transliteration
+  ├─ 4. post-process       mk / sr: Latin → Cyrillic transliteration
   ├─ 5. write source srt   <name>.<lang>.srt
   ├─ 6. translate          (--translate) batched cues + context → Ollama LLM → English
   └─ 7. write target srt   <name>.en.srt
@@ -101,9 +101,14 @@ This prevents the ASR model and the LLM from competing for VRAM and avoids reloa
 - The LLM model name is configuration (env var). The default model is chosen during implementation by a comparison script over sample clips in all five languages (see §7), not fixed in this spec.
 - Before the translate stage starts, the CLI checks that Ollama is reachable and the configured model is present, pulling it via the Ollama API if missing.
 
-### Serbian script
+### Cyrillic output (mk, sr)
 
-Whisper may emit Serbian in Latin or Cyrillic. Output is normalised to Cyrillic with a deterministic Latin→Cyrillic transliteration (handling digraphs lj, nj, dž). Known limitation: rare words where these letter pairs are two letters (e.g. "injekcija") will be transliterated incorrectly.
+Whisper may emit Macedonian or Serbian in Latin or Cyrillic. Output for both is normalised to Cyrillic with a deterministic, per-language Latin→Cyrillic transliteration; text already in Cyrillic is left untouched.
+
+- Serbian: standard Gaj's Latin mapping, including digraphs lj→љ, nj→њ, dž→џ and đ→ђ, ć→ћ.
+- Macedonian: standard romanisation, including lj→љ, nj→њ, dž/dzh→џ, dz→ѕ, gj/ǵ→ѓ, kj/ḱ→ќ, ch/č→ч, sh/š→ш, zh/ž→ж.
+
+Known limitation: rare words where a digraph is really two letters (e.g. Serbian "injekcija", Macedonian "podzemen") will be transliterated incorrectly.
 
 ## 4. Components
 
@@ -117,7 +122,7 @@ Python package `localtranscribe` (rename `pyproject.toml` project name from `loc
 | `engines/whisper` | Whisper large-v3 via faster-whisper. |
 | `router` | Maps language → engine. |
 | `cues` | Segments → subtitle cues per the rules above. |
-| `serbian` | Latin → Cyrillic transliteration. |
+| `cyrillic` | Per-language (mk, sr) Latin → Cyrillic transliteration. |
 | `srt` | Format/write SRT, atomic write (temp file + rename). |
 | `translate/base` | Translator interface. |
 | `translate/ollama` | Ollama implementation: batching, prompt, parsing, alignment fallback. |
@@ -156,6 +161,6 @@ NeMo and faster-whisper (CTranslate2) each have their own PyTorch / CUDA / cuDNN
 
 ## 7. Testing
 
-- **Unit tests** (host, `uv run pytest`, no GPU/Docker): cue building, SRT formatting, router, Serbian transliteration, translation batching/parsing/alignment fallback with a fake LLM, CLI skip/overwrite logic.
+- **Unit tests** (host, `uv run pytest`, no GPU/Docker): cue building, SRT formatting, router, Macedonian and Serbian transliteration, translation batching/parsing/alignment fallback with a fake LLM, CLI skip/overwrite logic.
 - **Integration tests** (in the container, GPU): one short CC0 clip per language (Mozilla Common Voice), asserting the `.srt` exists, timings are monotonic and non-overlapping, and expected words appear (fuzzy match).
 - **LLM selection script** (manual, not pass/fail): translates the sample clips with candidate models and prints results side by side for human review; the winner becomes the default model setting.

@@ -38,7 +38,8 @@ and the LLM never compete for VRAM.
 
 - `--lang` is always given by the user; whole file is treated as that language (no per-segment
   language detection yet).
-- Serbian output is always Cyrillic (deterministic Latin→Cyrillic transliteration).
+- Macedonian and Serbian output is always Cyrillic (deterministic per-language Latin→Cyrillic
+  transliteration).
 - English translation must keep exactly the source cue count and timings; on LLM line-count
   mismatch: retry, then split the batch, down to single cues.
 - Stages skip when their output exists (resumable) unless `--overwrite`; `.srt` writes are atomic.
