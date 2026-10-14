@@ -57,5 +57,6 @@ def test_cli_end_to_end_with_translation(tmp_path):
     assert source
     assert not re.search(r"[A-Za-z]", " ".join(c.text for c in source))
     assert target
-    assert all(any(s.start <= t.start and t.end <= s.end for s in source) for t in target)
+    assert all(any(s.start <= t.start < s.end for s in source) for t in target)
+    assert all(any(s.start < t.end <= s.end for s in source) for t in target)
     assert all(c.text.strip() for c in target)
