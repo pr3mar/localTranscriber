@@ -15,7 +15,6 @@ from localtranscribe.translate.batching import Complete, translate_cues
 logger = logging.getLogger(__name__)
 
 MEDIA_EXTENSIONS = frozenset({".mp4", ".mkv", ".avi", ".mov", ".webm", ".mp3", ".wav", ".m4a", ".flac", ".ogg"})
-TARGET_LANG = "en"
 
 
 @dataclass
@@ -40,15 +39,15 @@ def source_srt_path(media: Path, lang: str) -> Path:
     return media.with_name(f"{media.stem}.{lang}.srt")
 
 
-def target_srt_path(media: Path) -> Path:
-    return source_srt_path(media, TARGET_LANG)
+def target_srt_path(media: Path, target_lang: str) -> Path:
+    return source_srt_path(media, target_lang)
 
 
 def run(
     media_files: list[Path],
     lang: str,
     *,
-    translate: bool,
+    translate: list[str],
     overwrite: bool,
     from_srt: bool,
     engine_factory: Callable[[str], Engine],
@@ -63,10 +62,9 @@ def run(
                 r.error = f"--from-srt: {source.name} not found"
     else:
         _transcribe_stage(results, lang, overwrite, engine_factory)
-    if translate and lang == TARGET_LANG:
-        logger.info("source is already English; nothing to translate")
-    elif translate:
-        _translate_stage(results, lang, overwrite, complete_factory)
+    targets = [t for t in dict.fromkeys(translate) if t != lang]
+    if targets:
+        _translate_stage(results, lang, targets, overwrite, complete_factory)
     return results
 
 
@@ -115,28 +113,41 @@ def _transcribe_stage(results, lang, overwrite, engine_factory) -> None:
         engine.close()
 
 
-def _translate_stage(results, lang, overwrite, complete_factory) -> None:
-    pending = []
+def _translate_stage(results, lang, targets, overwrite, complete_factory) -> None:
+    pending = []  # (result, targets still to write)
     for r in results:
         if not r.ok:
             continue
-        if target_srt_path(r.media).exists() and not overwrite:
-            logger.info("skip translation, exists: %s", target_srt_path(r.media).name)
-        else:
-            pending.append(r)
+        todo = []
+        for t in targets:
+            if target_srt_path(r.media, t).exists() and not overwrite:
+                logger.info("skip translation, exists: %s", target_srt_path(r.media, t).name)
+            else:
+                todo.append(t)
+        if todo:
+            pending.append((r, todo))
     if not pending:
         return
     try:
         complete = complete_factory()
     except Exception as e:
-        for r in pending:
+        for r, _ in pending:
             r.error = f"translation unavailable: {e}"
         return
-    for r in pending:
+    for r, todo in pending:
+        errors = []
         try:
             cues = read_srt(source_srt_path(r.media, lang))
-            write_srt(target_srt_path(r.media), translate_cues(cues, lang, complete))
-            logger.info("translated %s", r.media.name)
         except Exception as e:  # per-file isolation
             logger.exception("translation failed: %s", r.media.name)
             r.error = f"translation failed: {e}"
+            continue
+        for t in todo:
+            try:
+                write_srt(target_srt_path(r.media, t), translate_cues(cues, lang, t, complete))
+                logger.info("translated %s -> %s", r.media.name, t)
+            except Exception as e:  # per-target isolation
+                logger.exception("translation to %s failed: %s", t, r.media.name)
+                errors.append(f"translation to {t} failed: {e}")
+        if errors:
+            r.error = "; ".join(errors)

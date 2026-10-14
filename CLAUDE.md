@@ -1,7 +1,7 @@
 # localTranscribe
 
 Local, Dockerised CLI that turns audio/video files (or folders of them) into `.srt` subtitles,
-with optional translation to English. Supported source languages: Macedonian (mk), Serbian (sr),
+with optional translation to any of en/es/mk/sl/sr (English by default). Supported source languages: Macedonian (mk), Serbian (sr),
 Slovenian (sl), Spanish (es), English (en).
 
 Full design: `docs/superpowers/specs/2026-10-14-localtranscribe-design.md` — read it before
@@ -16,7 +16,7 @@ changing behaviour or architecture.
 ## Pipeline
 
 media → ffmpeg (16 kHz mono WAV) → ASR → subtitle cues → `<name>.<lang>.srt`
-→ (optional `--translate`) LLM translation → `<name>.en.srt` (English cues start and end inside source cue spans, usually one source cue's span, and can cover several cues of the same sentence unit; long translations are split).
+→ (optional `--translate`) LLM translation → `<name>.<target>.srt` per target (`--translate en,mk,es`; bare = `en`; translated cues start and end inside source cue spans, usually one source cue's span, and can cover several cues of the same sentence unit; long translations are split).
 
 Folders run stage by stage (transcribe all files, unload ASR, then translate all) so the ASR model
 and the LLM never compete for VRAM.
@@ -41,7 +41,7 @@ and the LLM never compete for VRAM.
 - Macedonian and Serbian output is always Cyrillic (deterministic per-language Latin→Cyrillic
   transliteration).
 - Translation uses JSON keyed by sentence unit with Ollama structured output; on invalid reply: retry, then split
-  the batch, down to single units. English cues start and end inside source cue spans, usually one source cue's span (long ones are split).
+  the batch, down to single units. Translated cues start and end inside source cue spans, usually one source cue's span (long ones are split).
 - Stages skip when their output exists (resumable) unless `--overwrite`; `.srt` writes are atomic.
 - One failing file never stops a batch; summary at the end, non-zero exit if any failed.
 

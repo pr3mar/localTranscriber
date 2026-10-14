@@ -13,11 +13,29 @@ DEFAULT_OLLAMA_URL = "http://ollama:11434"
 DEFAULT_LLM = "gemma3:12b"
 
 
+def _translate_targets(value: str) -> list[str]:
+    targets = [t.strip() for t in value.split(",") if t.strip()]
+    bad = [t for t in targets if t not in SUPPORTED_LANGS]
+    if bad or not targets:
+        raise argparse.ArgumentTypeError(
+            f"invalid translation target(s) {','.join(bad) or value!r}; choose from {', '.join(SUPPORTED_LANGS)}"
+        )
+    return list(dict.fromkeys(targets))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="localtranscribe", description="Media to .srt subtitles, locally.")
     parser.add_argument("path", type=Path, help="media file or folder (non-recursive)")
     parser.add_argument("--lang", required=True, choices=SUPPORTED_LANGS, help="primary spoken language")
-    parser.add_argument("--translate", action="store_true", help="also write an English .en.srt")
+    parser.add_argument(
+        "--translate",
+        nargs="?",
+        const=["en"],
+        default=[],
+        type=_translate_targets,
+        metavar="LANGS",
+        help="also translate into these comma-separated languages (default en), writing <name>.<lang>.srt",
+    )
     parser.add_argument("--overwrite", action="store_true", help="redo stages whose output already exists")
     parser.add_argument("--from-srt", action="store_true", help="translate an existing <name>.<lang>.srt")
     return parser
@@ -50,10 +68,13 @@ def main(argv: list[str] | None = None) -> int:
     if not media:
         print(f"error: no media files found in {args.path}", file=sys.stderr)
         return 2
+    translate = [t for t in args.translate if t != args.lang]
+    if len(translate) != len(args.translate):
+        logging.info("--translate %s skipped: the source file already is in that language", args.lang)
     results = run(
         media,
         args.lang,
-        translate=args.translate,
+        translate=translate,
         overwrite=args.overwrite,
         from_srt=args.from_srt,
         engine_factory=load_engine,

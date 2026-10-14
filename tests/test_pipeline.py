@@ -56,7 +56,7 @@ def make_media(tmp_path, name="ep1.mkv"):
 
 def go(files, lang="mk", engine=None, **overrides):
     kwargs = dict(
-        translate=False,
+        translate=[],
         overwrite=False,
         from_srt=False,
         engine_factory=lambda _lang: engine or FakeEngine(),
@@ -80,7 +80,7 @@ def test_discover_media(tmp_path):
 def test_output_paths_keep_dotted_stems():
     media = Path("show.s01e01.mkv")
     assert source_srt_path(media, "mk").name == "show.s01e01.mk.srt"
-    assert target_srt_path(media).name == "show.s01e01.en.srt"
+    assert target_srt_path(media, "en").name == "show.s01e01.en.srt"
 
 
 def test_transcribes_macedonian_to_cyrillic_and_closes_engine(tmp_path):
@@ -93,9 +93,9 @@ def test_transcribes_macedonian_to_cyrillic_and_closes_engine(tmp_path):
 
 def test_translation_keeps_timings(tmp_path):
     media = make_media(tmp_path)
-    [result] = go([media], translate=True)
+    [result] = go([media], translate=["en"])
     assert result.ok
-    assert read_srt(target_srt_path(media)) == [Cue(0.0, 1.2, "EN Здраво свете.")]
+    assert read_srt(target_srt_path(media, "en")) == [Cue(0.0, 1.2, "EN Здраво свете.")]
 
 
 def test_existing_source_is_skipped_without_loading_engine(tmp_path):
@@ -116,19 +116,19 @@ def test_overwrite_retranscribes(tmp_path):
 def test_rerun_after_failed_translation_only_translates(tmp_path):
     media = make_media(tmp_path)
     write_srt(source_srt_path(media, "mk"), [Cue(0.0, 1.0, "Здраво")])
-    [result] = go([media], translate=True, engine_factory=never)
+    [result] = go([media], translate=["en"], engine_factory=never)
     assert result.ok
-    assert read_srt(target_srt_path(media)) == [Cue(0.0, 1.0, "EN Здраво")]
+    assert read_srt(target_srt_path(media, "en")) == [Cue(0.0, 1.0, "EN Здраво")]
 
 
 def test_one_failing_file_does_not_stop_the_batch(tmp_path, fake_extract):
     bad, good = make_media(tmp_path, "bad.mkv"), make_media(tmp_path, "good.mkv")
     fake_extract.add("bad.mkv")
-    results = go([bad, good], translate=True)
+    results = go([bad, good], translate=["en"])
     assert "no audio stream" in results[0].error
     assert results[1].ok
-    assert not target_srt_path(bad).exists()
-    assert target_srt_path(good).exists()
+    assert not target_srt_path(bad, "en").exists()
+    assert target_srt_path(good, "en").exists()
 
 
 def test_engine_load_failure_fails_all_pending_files(tmp_path):
@@ -146,7 +146,7 @@ def test_translator_unavailable_keeps_source_and_reports(tmp_path):
         raise RuntimeError("Ollama not reachable")
 
     media = make_media(tmp_path)
-    [result] = go([media], translate=True, complete_factory=unavailable)
+    [result] = go([media], translate=["en"], complete_factory=unavailable)
     assert result.error == "translation unavailable: Ollama not reachable"
     assert source_srt_path(media, "mk").exists()
 
@@ -154,15 +154,15 @@ def test_translator_unavailable_keeps_source_and_reports(tmp_path):
 def test_from_srt(tmp_path):
     missing, present = make_media(tmp_path, "a.mkv"), make_media(tmp_path, "b.mkv")
     write_srt(source_srt_path(present, "mk"), [Cue(0.0, 1.0, "Здраво")])
-    results = go([missing, present], translate=True, from_srt=True, engine_factory=never)
+    results = go([missing, present], translate=["en"], from_srt=True, engine_factory=never)
     assert "a.mk.srt not found" in results[0].error
     assert results[1].ok
-    assert read_srt(target_srt_path(present)) == [Cue(0.0, 1.0, "EN Здраво")]
+    assert read_srt(target_srt_path(present, "en")) == [Cue(0.0, 1.0, "EN Здраво")]
 
 
 def test_english_source_is_not_translated(tmp_path):
     media = make_media(tmp_path)
-    [result] = go([media], lang="en", translate=True, complete_factory=never)
+    [result] = go([media], lang="en", translate=["en"], complete_factory=never)
     assert result.ok
     assert sorted(p.name for p in tmp_path.iterdir()) == ["ep1.en.srt", "ep1.mkv"]
 
@@ -176,10 +176,10 @@ def test_unicode_and_spaces_in_filename(tmp_path):
 
 def test_no_speech_writes_empty_subtitles(tmp_path):
     media = make_media(tmp_path)
-    [result] = go([media], engine=FakeEngine(segments=[]), translate=True)
+    [result] = go([media], engine=FakeEngine(segments=[]), translate=["en"])
     assert result.ok
     assert read_srt(source_srt_path(media, "mk")) == []
-    assert read_srt(target_srt_path(media)) == []
+    assert read_srt(target_srt_path(media, "en")) == []
 
 
 def test_same_stem_collision_fails_loudly(tmp_path):
@@ -189,3 +189,65 @@ def test_same_stem_collision_fails_loudly(tmp_path):
     assert results[0].ok
     assert "ep1.mk.srt" in results[1].error and "ep1.mkv" in results[1].error
     assert engine.transcribed == ["mk"]
+
+
+def targeted_complete(system, user, schema=None):
+    tag = system.split("into natural, concise ")[1].split(".")[0]
+    lines = json.loads(user)["lines"]
+    return json.dumps({k: f"{tag} {v}" for k, v in lines.items()}, ensure_ascii=False)
+
+
+def test_several_targets_write_all_files(tmp_path):
+    media = make_media(tmp_path)
+    [result] = go([media], translate=["en", "es"], complete_factory=lambda: targeted_complete)
+    assert result.ok
+    assert read_srt(target_srt_path(media, "en")) == [Cue(0.0, 1.2, "English Здраво свете.")]
+    assert read_srt(target_srt_path(media, "es")) == [Cue(0.0, 1.2, "Spanish Здраво свете.")]
+
+
+def test_existing_target_skipped_unless_overwrite(tmp_path):
+    media = make_media(tmp_path)
+    write_srt(source_srt_path(media, "mk"), [Cue(0.0, 1.0, "Здраво")])
+    write_srt(target_srt_path(media, "en"), [Cue(0.0, 1.0, "old")])
+    go([media], translate=["en", "es"], from_srt=True, complete_factory=lambda: targeted_complete)
+    assert read_srt(target_srt_path(media, "en")) == [Cue(0.0, 1.0, "old")]
+    assert target_srt_path(media, "es").exists()
+    go([media], translate=["en"], from_srt=True, overwrite=True, complete_factory=lambda: targeted_complete)
+    assert read_srt(target_srt_path(media, "en")) == [Cue(0.0, 1.0, "English Здраво")]
+
+
+def test_failing_target_does_not_stop_other_targets_or_files(tmp_path):
+    files = [make_media(tmp_path, "a.mkv"), make_media(tmp_path, "b.mkv")]
+    write_srt(source_srt_path(files[0], "mk"), [Cue(0.0, 1.0, "Лош")])
+    write_srt(source_srt_path(files[1], "mk"), [Cue(0.0, 1.0, "Добар")])
+
+    def complete(system, user, schema=None):
+        if "Spanish" in system and "Лош" in user:
+            raise RuntimeError("boom")
+        return targeted_complete(system, user, schema)
+
+    results = go(files, translate=["es", "en"], from_srt=True, complete_factory=lambda: complete)
+    assert "boom" in results[0].error and "es" in results[0].error
+    assert results[1].ok
+    assert target_srt_path(files[0], "en").exists()
+    assert not target_srt_path(files[0], "es").exists()
+    assert target_srt_path(files[1], "es").exists() and target_srt_path(files[1], "en").exists()
+
+
+def test_complete_factory_called_once_for_several_targets(tmp_path):
+    media = make_media(tmp_path)
+    count = []
+
+    def factory():
+        count.append(1)
+        return targeted_complete
+
+    go([media], translate=["en", "es", "sl"], complete_factory=factory)
+    assert len(count) == 1
+
+
+def test_source_language_target_is_never_translated(tmp_path):
+    media = make_media(tmp_path)
+    [result] = go([media], translate=["mk"], complete_factory=never)
+    assert result.ok
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["ep1.mk.srt", "ep1.mkv"]

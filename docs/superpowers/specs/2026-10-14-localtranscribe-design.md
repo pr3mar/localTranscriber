@@ -8,7 +8,7 @@ Status: Approved
 Turn any audio/video file (or a folder of them) into subtitle files, fully locally:
 
 - Transcribe **Macedonian (mk), Serbian (sr), Slovenian (sl), Spanish (es), English (en)**.
-- Optionally translate the transcript **to English**.
+- Optionally translate the transcript **into one or more of the same five languages** (English by default).
 - Output: `.srt` files.
 
 ### Hard constraints
@@ -29,7 +29,6 @@ Mixed: TV shows, movies, talks, interviews. General-purpose defaults; no speaker
 - Web UI.
 - CPU-only and ARM targets.
 - CI image builds / automated registry publishing.
-- Translation to targets other than English.
 
 ## 2. User interface
 
@@ -42,7 +41,7 @@ docker compose run --rm transcribe /media/<file-or-folder> --lang mk [--translat
 | Flag | Meaning |
 |---|---|
 | `--lang {mk,sr,sl,es,en}` | **Required.** Primary language of the media. |
-| `--translate` | Also produce an English `.srt`. Ignored (no-op) when `--lang en`. |
+| `--translate [LANGS]` | Also translate into a comma-separated list of targets from `mk,sr,sl,es,en` (bare = `en`). A target equal to `--lang` is skipped. |
 | `--overwrite` | Redo stages even if their output already exists. |
 | `--from-srt` | Skip transcription; translate an existing `<name>.<lang>.srt`. |
 
@@ -53,7 +52,7 @@ Folder input: process all media files in the folder (non-recursive), by extensio
 Written next to the input file:
 
 - `<name>.<lang>.srt` — source-language subtitles.
-- `<name>.en.srt` — English subtitles (with `--translate`), every English cue starts and ends inside source cue spans, usually a single source cue's span (it can cover several cues of the same sentence unit). Over-long translations are split into several cues, so the English file may have more cues than the source.
+- `<name>.<target>.srt` — one file per translation target (with `--translate`, e.g. `<name>.en.srt`); `mk`/`sr` targets are Cyrillic. Every translated cue starts and ends inside source cue spans, usually a single source cue's span (it can cover several cues of the same sentence unit). Over-long translations are split into several cues, so the translated file may have more cues than the source.
 
 Macedonian and Serbian output is always **Cyrillic**.
 
@@ -96,7 +95,7 @@ This prevents the ASR model and the LLM from competing for VRAM and avoids reloa
 
 - Translator is an interface (`translate(cues, source_lang) -> english_texts`), with one implementation: **Ollama** over HTTP.
 - Consecutive cues are first grouped into **sentence units** (a unit ends at a cue ending in `.?!…`, capped at 5 cues / 250 characters), because the cue builder splits long sentences across cues and translating fragments separately lets the LLM merge them and shift later lines. Units are sent in batches of ~10–20 with a few preceding units as read-only context, as a JSON object keyed by 1-based unit id; the response is constrained with Ollama structured output (a JSON schema requiring exactly those keys), so each unit gets exactly one translation. Each unit's English is distributed back over its cues at word boundaries (preferring sentence/clause punctuation) proportionally to each cue's source length; if it has fewer words than the unit has cues, the trailing cues' spans are merged into the last piece.
-- Prompt notes that the text is mostly `<lang>` and may contain other languages; English lines pass through unchanged.
+- Prompt notes that the text is mostly `<lang>` and may contain other languages; lines already in the target language pass through unchanged.
 - **Alignment guarantee:** on invalid JSON, missing keys or empty values → retry the batch once, then split it in half recursively, down to single units (a unit that still fails keeps its cues' source text, with a warning). Translations that do not fit two lines of 42 characters are split at the sentence boundary closest to the middle (else clause boundary, else space), with the source cue's time divided proportionally to text length, so English cues always start and end inside source cue spans, usually one source cue's span (a cue can cover several cues of the same sentence unit).
 - The LLM model name is configuration (env var). The default model is chosen during implementation by a comparison script over sample clips in all five languages (see §7), not fixed in this spec.
 - Before the translate stage starts, the CLI checks that Ollama is reachable and the configured model is present, pulling it via the Ollama API if missing.

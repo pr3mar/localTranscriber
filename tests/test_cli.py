@@ -34,7 +34,7 @@ def test_passes_flags_and_reports_success(monkeypatch, tmp_path, capsys):
     assert cli.main([str(media), "--lang", "sr", "--translate", "--overwrite"]) == 0
     assert seen["files"] == [media]
     assert seen["lang"] == "sr"
-    assert seen["translate"] and seen["overwrite"] and not seen["from_srt"]
+    assert seen["translate"] == ["en"] and seen["overwrite"] and not seen["from_srt"]
     assert "1 succeeded, 0 failed" in capsys.readouterr().out
 
 
@@ -66,3 +66,38 @@ def test_complete_factory_reads_env_and_ensures_model(monkeypatch):
     monkeypatch.setenv("LOCALTRANSCRIBE_LLM", "m:1")
     cli._complete_factory()
     assert created == {"url": "http://x:1", "model": "m:1", "ensured": True}
+
+
+def _translate_arg(monkeypatch, tmp_path, *flags):
+    media = tmp_path / "a.mkv"
+    media.write_bytes(b"x")
+    seen = {}
+
+    def fake_run(files, lang, **kwargs):
+        seen.update(kwargs)
+        return [FileResult(files[0])]
+
+    monkeypatch.setattr(cli, "run", fake_run)
+    code = cli.main([str(media), "--lang", "sr", *flags])
+    return code, seen["translate"]
+
+
+def test_translate_targets(monkeypatch, tmp_path):
+    assert _translate_arg(monkeypatch, tmp_path, "--translate") == (0, ["en"])
+    assert _translate_arg(monkeypatch, tmp_path, "--translate", "en,mk,es") == (0, ["en", "mk", "es"])
+    assert _translate_arg(monkeypatch, tmp_path, "--translate", "mk,en,mk") == (0, ["mk", "en"])
+    assert _translate_arg(monkeypatch, tmp_path) == (0, [])
+
+
+def test_translate_skips_source_language(monkeypatch, tmp_path, caplog):
+    with caplog.at_level("INFO"):
+        assert _translate_arg(monkeypatch, tmp_path, "--translate", "sr,en") == (0, ["en"])
+    assert "sr" in caplog.text
+
+
+def test_translate_rejects_unknown_target(tmp_path):
+    media = tmp_path / "a.mkv"
+    media.write_bytes(b"x")
+    with pytest.raises(SystemExit) as exc:
+        cli.main([str(media), "--lang", "sr", "--translate", "xx"])
+    assert exc.value.code == 2

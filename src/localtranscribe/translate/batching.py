@@ -3,6 +3,7 @@ import logging
 from collections.abc import Callable
 
 from localtranscribe.cues import _CLAUSE_END, _SENTENCE_END, split_to_fit
+from localtranscribe.cyrillic import CYRILLIC_LANGS, to_cyrillic
 from localtranscribe.models import Cue
 
 logger = logging.getLogger(__name__)
@@ -20,14 +21,17 @@ _CLOSERS = "\"'“”‘’«»)]"  # closing quotes/brackets that may follow se
 
 LANGUAGE_NAMES = {"mk": "Macedonian", "sr": "Serbian", "sl": "Slovenian", "es": "Spanish", "en": "English"}
 
-SYSTEM_PROMPT = (
-    "You translate subtitles into natural, concise English. "
-    "The user message is a JSON object with 'source_language', optional 'context' and 'lines'. "
-    "Translate each value of 'lines' into English and reply with a JSON object with exactly the same keys, "
-    "one translation per key. Never merge or split lines. Lines already in English are returned unchanged. "
-    "The source is mostly the given language but may contain other languages. "
-    "'context' is earlier subtitle text for understanding only: do not translate it."
-)
+
+def build_system_prompt(target_lang: str) -> str:
+    target = LANGUAGE_NAMES[target_lang]
+    return (
+        f"You translate subtitles into natural, concise {target}. "
+        "The user message is a JSON object with 'source_language', optional 'context' and 'lines'. "
+        f"Translate each value of 'lines' into {target} and reply with a JSON object with exactly the same keys, "
+        f"one translation per key. Never merge or split lines. Lines already in {target} are returned unchanged. "
+        "The source is mostly the given language but may contain other languages. "
+        "'context' is earlier subtitle text for understanding only: do not translate it."
+    )
 
 
 def build_user_prompt(lines: list[str], context: list[str], source_lang: str) -> str:
@@ -63,20 +67,23 @@ def parse_reply(reply: str, expected: int) -> list[str] | None:
     return out
 
 
-def _translate_lines(lines: list[str], context: list[str], source_lang: str, complete: Complete) -> list[str]:
+def _translate_lines(
+    lines: list[str], context: list[str], source_lang: str, target_lang: str, complete: Complete
+) -> list[str]:
+    system = build_system_prompt(target_lang)
     user = build_user_prompt(lines, context, source_lang)
     schema = build_schema([str(i) for i in range(1, len(lines) + 1)])
     for _ in range(ATTEMPTS):
-        parsed = parse_reply(complete(SYSTEM_PROMPT, user, schema), len(lines))
+        parsed = parse_reply(complete(system, user, schema), len(lines))
         if parsed is not None:
             return parsed
     if len(lines) == 1:
         logger.warning("could not translate line, keeping source text: %r", lines[0])
         return lines
     mid = len(lines) // 2
-    left = _translate_lines(lines[:mid], context, source_lang, complete)
+    left = _translate_lines(lines[:mid], context, source_lang, target_lang, complete)
     right_context = (context + lines[:mid])[-CONTEXT_SIZE:]
-    return left + _translate_lines(lines[mid:], right_context, source_lang, complete)
+    return left + _translate_lines(lines[mid:], right_context, source_lang, target_lang, complete)
 
 
 def _ends(text: str, ends: tuple[str, ...]) -> bool:
@@ -133,8 +140,8 @@ def _distribute(english: str, sources: list[str]) -> list[str]:
     return pieces
 
 
-def translate_cues(cues: list[Cue], source_lang: str, complete: Complete) -> list[Cue]:
-    """Translate whole sentence units, then distribute each unit's English back over its cues' time spans.
+def translate_cues(cues: list[Cue], source_lang: str, target_lang: str, complete: Complete) -> list[Cue]:
+    """Translate whole sentence units, then distribute each unit's translation back over its cues' time spans.
 
     Over-long pieces are split within their piece's span; if a unit's English has fewer words than
     the unit has cues, the trailing cues' spans are merged into the last piece's cue.
@@ -146,7 +153,9 @@ def translate_cues(cues: list[Cue], source_lang: str, complete: Complete) -> lis
     for start in range(0, len(unit_texts), BATCH_SIZE):
         batch = unit_texts[start : start + BATCH_SIZE]
         context = unit_texts[max(0, start - CONTEXT_SIZE) : start]
-        translated.extend(_translate_lines(batch, context, source_lang, complete))
+        translated.extend(_translate_lines(batch, context, source_lang, target_lang, complete))
+    if target_lang in CYRILLIC_LANGS:
+        translated = [to_cyrillic(t, target_lang) for t in translated]
     out: list[Cue] = []
     for unit, source, english in zip(units, unit_texts, translated, strict=True):
         sources = [texts[i] for i in unit]
