@@ -16,7 +16,7 @@ changing behaviour or architecture.
 ## Pipeline
 
 media → ffmpeg (16 kHz mono WAV) → ASR → subtitle cues → `<name>.<lang>.srt`
-→ (optional `--translate`) LLM translation → `<name>.en.srt` (each English cue lies within its source cue's span; long translations are split).
+→ (optional `--translate`) LLM translation → `<name>.en.srt` (English cues start and end inside source cue spans, usually one source cue's span, and can cover several cues of the same sentence unit; long translations are split).
 
 Folders run stage by stage (transcribe all files, unload ASR, then translate all) so the ASR model
 and the LLM never compete for VRAM.

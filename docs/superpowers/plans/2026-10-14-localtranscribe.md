@@ -19,7 +19,7 @@
 - Python ≥3.12; package name `localtranscribe`; `src/` layout; console script `localtranscribe`.
 - Supported `--lang` values exactly: `mk`, `sr`, `sl`, `es`, `en`. Translation target: English only.
 - Engines: `sl`/`es`/`en` → Parakeet TDT 0.6B v3; `mk`/`sr` → Whisper large-v3.
-- Outputs next to the input: `<stem>.<lang>.srt`, and with `--translate` `<stem>.en.srt` with identical cue count and timings.
+- Outputs next to the input: `<stem>.<lang>.srt`, and with `--translate` `<stem>.en.srt` whose English cues start and end inside source cue spans (not necessarily one-to-one with the source cues).
 - Macedonian and Serbian output is always Cyrillic.
 - Cue rules: ≤42 characters per line, ≤2 lines, ~1–7 s, never overlapping.
 - Unit tests run on the host with `uv run pytest` — no GPU, Docker, ffmpeg, NeMo or faster-whisper needed. Heavy imports stay inside functions/constructors.
@@ -2529,7 +2529,7 @@ The first run downloads the speech and translation models (several GB) into Dock
 | Flag | Meaning |
 |---|---|
 | `--lang {mk,sr,sl,es,en}` | Primary spoken language (required) |
-| `--translate` | Also write `<name>.en.srt` with identical timings |
+| `--translate` | Also write `<name>.en.srt` with English cues inside the source cue spans |
 | `--overwrite` | Redo outputs that already exist |
 | `--from-srt` | Translate an existing `<name>.<lang>.srt` without transcribing |
 

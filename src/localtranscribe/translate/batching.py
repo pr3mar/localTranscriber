@@ -136,7 +136,7 @@ def _distribute(english: str, sources: list[str]) -> list[str]:
 def translate_cues(cues: list[Cue], source_lang: str, complete: Complete) -> list[Cue]:
     """Translate whole sentence units, then distribute each unit's English back over its cues' time spans.
 
-    Over-long pieces are split within their source cue's span; if a unit's English has fewer words than
+    Over-long pieces are split within their piece's span; if a unit's English has fewer words than
     the unit has cues, the trailing cues' spans are merged into the last piece's cue.
     """
     texts = [" ".join(c.text.split()) for c in cues]
