@@ -1,0 +1,37 @@
+services:
+  transcribe:
+    image: ${LOCALTRANSCRIBE_IMAGE:-localtranscribe:latest}
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    volumes:
+      - models:/models
+      - ${MEDIA_DIR:-./media}:/media
+    environment:
+      OLLAMA_URL: http://ollama:11434
+      LOCALTRANSCRIBE_LLM: ${LOCALTRANSCRIBE_LLM:-gemma3:12b}
+    depends_on:
+      - ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  ollama:
+    image: ollama/ollama:0.40.4
+    volumes:
+      - ollama:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+volumes:
+  models:
+  ollama:
