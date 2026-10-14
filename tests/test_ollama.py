@@ -67,11 +67,12 @@ def test_complete_sends_chat_request():
 
     def handler(request):
         sent.append(json.loads(request.content))
-        return httpx.Response(200, json={"message": {"role": "assistant", "content": "[1] Hello"}})
+        return httpx.Response(200, json={"message": {"role": "assistant", "content": "{}"}})
 
-    assert make_client(handler).complete("sys", "usr") == "[1] Hello"
+    assert make_client(handler).complete("sys", "usr", {"type": "object"}) == "{}"
     assert sent[0]["model"] == "gemma3:12b"
     assert sent[0]["stream"] is False
+    assert sent[0]["format"] == {"type": "object"}
     assert sent[0]["messages"] == [{"role": "system", "content": "sys"}, {"role": "user", "content": "usr"}]
 
 
@@ -80,4 +81,4 @@ def test_complete_http_error_raises():
         return httpx.Response(500, json={"error": "out of memory"})
 
     with pytest.raises(OllamaError, match="translation request failed"):
-        make_client(handler).complete("sys", "usr")
+        make_client(handler).complete("sys", "usr", {"type": "object"})

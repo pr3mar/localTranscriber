@@ -1,6 +1,6 @@
 import pytest
 
-from localtranscribe.cues import MAX_CHARS, MAX_DURATION, build_cues, wrap_text
+from localtranscribe.cues import MAX_CHARS, MAX_DURATION, build_cues, split_to_fit, wrap_text
 from localtranscribe.models import Cue, Segment, Word
 
 
@@ -114,3 +114,31 @@ def test_short_cue_is_not_merged_when_text_would_not_fit():
     long = [(0.5, 1.5, "b" * 20), (1.5, 2.5, "c" * 20), (2.5, 3.0, "d" * 20 + ".")]
     cues = build_cues([seg((0.0, 0.3, first)), seg(*long)])
     assert [(c.start, c.end) for c in cues] == [(0.0, 0.5), (0.5, 3.0)]
+
+
+def test_split_to_fit_keeps_short_text_as_one_cue():
+    assert split_to_fit(Cue(1.0, 3.0, "Hello there.")) == [Cue(1.0, 3.0, "Hello there.")]
+
+
+def test_split_to_fit_prefers_sentence_boundary_near_middle():
+    text = "Short one. " + "a" * 30 + " " + "b" * 30 + ". " + "c" * 30 + " " + "d" * 30
+    parts = split_to_fit(Cue(0.0, 10.0, text))
+    assert len(parts) == 2
+    assert parts[0].text.replace("\n", " ").endswith("b" * 30 + ".")
+    assert parts[1].text.replace("\n", " ") == "c" * 30 + " " + "d" * 30
+    assert parts[0].start == 0.0 and parts[1].end == 10.0 and parts[0].end == parts[1].start
+
+
+def test_split_to_fit_falls_back_to_clause_then_space():
+    clause = "w" * 38 + ", " + "x" * 38 + " " + "y" * 38 + " " + "z" * 38
+    parts = split_to_fit(Cue(0.0, 8.0, clause))
+    assert parts[0].text == "w" * 38 + ","
+    spaces = " ".join(["word"] * 40)
+    parts = split_to_fit(Cue(0.0, 8.0, spaces))
+    assert len(parts) >= 2 and " ".join(p.text.replace("\n", " ") for p in parts) == spaces
+
+
+def test_split_to_fit_divides_time_proportionally_and_keeps_long_word():
+    parts = split_to_fit(Cue(0.0, 10.0, "a" * 80 + ". " + "b" * 80 + "."))
+    assert [(p.start, p.end) for p in parts] == [(0.0, pytest.approx(10 * 81 / 162 + 0.0, abs=0.2)), (parts[0].end, 10.0)]
+    assert split_to_fit(Cue(0.0, 2.0, "x" * 60)) == [Cue(0.0, 2.0, "x" * 60)]

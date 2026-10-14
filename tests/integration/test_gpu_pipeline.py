@@ -56,5 +56,6 @@ def test_cli_end_to_end_with_translation(tmp_path):
     target = read_srt(tmp_path / "Епизода 1.en.srt")
     assert source
     assert not re.search(r"[A-Za-z]", " ".join(c.text for c in source))
-    assert [(c.start, c.end) for c in source] == [(c.start, c.end) for c in target]
+    assert target
+    assert all(any(s.start <= t.start and t.end <= s.end for s in source) for t in target)
     assert all(c.text.strip() for c in target)

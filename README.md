@@ -31,7 +31,7 @@ The first run downloads the speech and translation models (several GB) into Dock
 | Flag | Meaning |
 |---|---|
 | `--lang {mk,sr,sl,es,en}` | Primary spoken language (required) |
-| `--translate` | Also write `<name>.en.srt` with identical timings |
+| `--translate` | Also write `<name>.en.srt` (each English cue within its source cue's time span; long translations are split) |
 | `--overwrite` | Redo outputs that already exist |
 | `--from-srt` | Translate an existing `<name>.<lang>.srt` without transcribing |
 

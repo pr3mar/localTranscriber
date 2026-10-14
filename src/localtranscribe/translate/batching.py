@@ -1,13 +1,13 @@
+import json
 import logging
-import re
 from collections.abc import Callable
 
-from localtranscribe.cues import wrap_text
+from localtranscribe.cues import split_to_fit
 from localtranscribe.models import Cue
 
 logger = logging.getLogger(__name__)
 
-Complete = Callable[[str, str], str]
+Complete = Callable[[str, str, dict], str]
 
 BATCH_SIZE = 15
 CONTEXT_SIZE = 3
@@ -17,56 +17,52 @@ LANGUAGE_NAMES = {"mk": "Macedonian", "sr": "Serbian", "sl": "Slovenian", "es": 
 
 SYSTEM_PROMPT = (
     "You translate subtitles into natural, concise English. "
-    "You receive numbered subtitle lines, optionally preceded by earlier lines for context. "
-    "Translate ONLY the numbered lines. Reply with exactly one line per numbered input line, "
-    "in the form '[N] translation', in the same order, and nothing else. "
-    "Lines already in English are returned unchanged. Never merge or split lines."
+    "The user message is a JSON object with 'source_language', optional 'context' and 'lines'. "
+    "Translate each value of 'lines' into English and reply with a JSON object with exactly the same keys, "
+    "one translation per key. Never merge or split lines. Lines already in English are returned unchanged. "
+    "The source is mostly the given language but may contain other languages. "
+    "'context' is earlier subtitle text for understanding only: do not translate it."
 )
-
-_THINK = re.compile(r"<think>.*?</think>", re.DOTALL)
-_NUMBERED = re.compile(r"^\s*(?:\[(\d+)\]|(\d+)[.):](?=\s|$))\s*(.*?)\s*$")
 
 
 def build_user_prompt(lines: list[str], context: list[str], source_lang: str) -> str:
-    parts = [f"Source language: mostly {LANGUAGE_NAMES[source_lang]}; some lines may be in other languages."]
+    payload: dict = {"source_language": LANGUAGE_NAMES[source_lang]}
     if context:
-        parts.append("Context (do not translate):")
-        parts.extend(context)
-    parts.append("Translate:")
-    parts.extend(f"[{i}] {line}" for i, line in enumerate(lines, 1))
-    return "\n".join(parts)
+        payload["context"] = context
+    payload["lines"] = {str(i): line for i, line in enumerate(lines, 1)}
+    return json.dumps(payload, ensure_ascii=False)
 
 
-def parse_numbered(reply: str, expected: int) -> list[str] | None:
-    found: dict[int, str] = {}
-    for line in _THINK.sub("", reply).splitlines():
-        match = _NUMBERED.match(line)
-        if match and match.group(3):
-            n = int(match.group(1) or match.group(2))
-            if 1 <= n <= expected and n not in found:
-                found[n] = match.group(3)
-    if len(found) != expected:
+def build_schema(keys: list[str]) -> dict:
+    return {
+        "type": "object",
+        "properties": {k: {"type": "string"} for k in keys},
+        "required": keys,
+        "additionalProperties": False,
+    }
+
+
+def parse_reply(reply: str, expected: int) -> list[str] | None:
+    try:
+        data = json.loads(reply)
+    except ValueError:
         return None
-    return [found[i] for i in range(1, expected + 1)]
-
-
-def _parse_single(reply: str) -> str | None:
-    for line in _THINK.sub("", reply).splitlines():
-        match = _NUMBERED.match(line)
-        text = match.group(3) if match else line.strip()
-        if text:
-            return text
-    return None
+    if not isinstance(data, dict):
+        return None
+    out = []
+    for i in range(1, expected + 1):
+        value = data.get(str(i))
+        if not isinstance(value, str) or not value.strip():
+            return None
+        out.append(value.strip())
+    return out
 
 
 def _translate_lines(lines: list[str], context: list[str], source_lang: str, complete: Complete) -> list[str]:
     user = build_user_prompt(lines, context, source_lang)
+    schema = build_schema([str(i) for i in range(1, len(lines) + 1)])
     for _ in range(ATTEMPTS):
-        reply = complete(SYSTEM_PROMPT, user)
-        parsed = parse_numbered(reply, len(lines))
-        if parsed is None and len(lines) == 1:
-            single = _parse_single(reply)
-            parsed = [single] if single else None
+        parsed = parse_reply(complete(SYSTEM_PROMPT, user, schema), len(lines))
         if parsed is not None:
             return parsed
     if len(lines) == 1:
@@ -79,11 +75,14 @@ def _translate_lines(lines: list[str], context: list[str], source_lang: str, com
 
 
 def translate_cues(cues: list[Cue], source_lang: str, complete: Complete) -> list[Cue]:
-    """Translate cue texts to English; cue count and timings are always preserved."""
+    """Translate cue texts to English; over-long translations are split within their source cue's span."""
     texts = [" ".join(c.text.split()) for c in cues]
     translated: list[str] = []
     for start in range(0, len(texts), BATCH_SIZE):
         batch = texts[start : start + BATCH_SIZE]
         context = texts[max(0, start - CONTEXT_SIZE) : start]
         translated.extend(_translate_lines(batch, context, source_lang, complete))
-    return [Cue(c.start, c.end, wrap_text(t) or t) for c, t in zip(cues, translated, strict=True)]
+    out: list[Cue] = []
+    for cue, text in zip(cues, translated, strict=True):
+        out.extend(split_to_fit(Cue(cue.start, cue.end, text)))
+    return out

@@ -123,3 +123,27 @@ def _merge(first: Cue, second: Cue, max_span: float | None) -> Cue | None:
     if text is None:
         return None
     return Cue(first.start, max(first.end, second.end), text)
+
+
+def _split_index(text: str) -> int | None:
+    """Index of the space to split at: sentence boundary, else clause, else any, closest to the middle."""
+    spaces = [i for i, ch in enumerate(text) if ch == " " and 0 < i < len(text) - 1]
+    for ends in (_SENTENCE_END, _CLAUSE_END, None):
+        options = [i for i in spaces if ends is None or text[i - 1] in ends]
+        if options:
+            return min(options, key=lambda i: abs(i - len(text) / 2))
+    return None
+
+
+def split_to_fit(cue: Cue) -> list[Cue]:
+    """Split a cue whose text does not fit two lines into several, dividing its time by text length."""
+    text = " ".join(cue.text.split())
+    wrapped = wrap_text(text)
+    if wrapped is not None:
+        return [Cue(cue.start, cue.end, wrapped)]
+    i = _split_index(text)
+    if i is None:
+        return [Cue(cue.start, cue.end, text)]
+    left, right = text[:i], text[i + 1 :]
+    mid = cue.start + (cue.end - cue.start) * len(left) / (len(left) + len(right))
+    return split_to_fit(Cue(cue.start, mid, left)) + split_to_fit(Cue(mid, cue.end, right))

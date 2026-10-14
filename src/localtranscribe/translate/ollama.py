@@ -29,10 +29,11 @@ class OllamaClient:
         if status.get("status") != "success":
             raise OllamaError(f"could not pull model {self.model!r}: {status.get('error', status)}")
 
-    def complete(self, system: str, user: str) -> str:
+    def complete(self, system: str, user: str, schema: dict) -> str:
         payload = {
             "model": self.model,
             "stream": False,
+            "format": schema,
             "options": {"temperature": 0.2},
             "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
         }

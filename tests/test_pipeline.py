@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -25,9 +26,9 @@ class FakeEngine:
         self.closed = True
 
 
-def echo_complete(system, user):
-    body = user.split("Translate:\n", 1)[1]
-    return "\n".join(f"[{i}] EN {line.split('] ', 1)[1]}" for i, line in enumerate(body.splitlines(), 1))
+def echo_complete(system, user, schema=None):
+    lines = json.loads(user)["lines"]
+    return json.dumps({k: f"EN {v}" for k, v in lines.items()}, ensure_ascii=False)
 
 
 def never(*args):

@@ -53,7 +53,7 @@ Folder input: process all media files in the folder (non-recursive), by extensio
 Written next to the input file:
 
 - `<name>.<lang>.srt` — source-language subtitles.
-- `<name>.en.srt` — English subtitles (with `--translate`), **identical cue count and timings** to the source file.
+- `<name>.en.srt` — English subtitles (with `--translate`), every English cue lies within the time span of its source cue. Over-long translations are split into several cues, so the English file may have more cues than the source.
 
 Macedonian and Serbian output is always **Cyrillic**.
 
@@ -95,9 +95,9 @@ This prevents the ASR model and the LLM from competing for VRAM and avoids reloa
 ### Translation
 
 - Translator is an interface (`translate(cues, source_lang) -> english_texts`), with one implementation: **Ollama** over HTTP.
-- Cues are sent in batches of ~10–20 with a few preceding cues as read-only context, as numbered lines; the response must contain exactly one translated line per numbered input line.
+- Cues are sent in batches of ~10–20 with a few preceding cues as read-only context, as a JSON object keyed by 1-based cue id; the response is constrained with Ollama structured output (a JSON schema requiring exactly those keys), so each cue gets exactly one translation and merged or shifted lines cannot occur.
 - Prompt notes that the text is mostly `<lang>` and may contain other languages; English lines pass through unchanged.
-- **Alignment guarantee:** on line-count mismatch or unparseable output → retry the batch once, then split it in half recursively, down to single cues. Timings are always copied from the source cues; only text changes.
+- **Alignment guarantee:** on invalid JSON, missing keys or empty values → retry the batch once, then split it in half recursively, down to single cues (a cue that still fails keeps its source text, with a warning). Translations that do not fit two lines of 42 characters are split at the sentence boundary closest to the middle (else clause boundary, else space), with the source cue's time divided proportionally to text length, so English cues always stay within their source cue's span.
 - The LLM model name is configuration (env var). The default model is chosen during implementation by a comparison script over sample clips in all five languages (see §7), not fixed in this spec.
 - Before the translate stage starts, the CLI checks that Ollama is reachable and the configured model is present, pulling it via the Ollama API if missing.
 
@@ -107,6 +107,8 @@ Whisper may emit Macedonian or Serbian in Latin or Cyrillic. Output for both is 
 
 - Serbian: standard Gaj's Latin mapping, including digraphs lj→љ, nj→њ, dž→џ and đ→ђ, ć→ћ.
 - Macedonian: standard romanisation, including lj→љ, nj→њ, dž/dzh→џ, dz→ѕ, gj/ǵ→ѓ, kj/ḱ→ќ, ch/č→ч, sh/š→ш, zh/ž→ж.
+
+Loanwords the ASR writes in Latin script (e.g. "custom shop") are transliterated letter by letter ("цустом схоп"); this is an accepted limitation.
 
 Known limitation: rare words where a digraph is really two letters (e.g. Serbian "injekcija", Macedonian "podzemen") will be transliterated incorrectly.
 

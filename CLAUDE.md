@@ -16,7 +16,7 @@ changing behaviour or architecture.
 ## Pipeline
 
 media → ffmpeg (16 kHz mono WAV) → ASR → subtitle cues → `<name>.<lang>.srt`
-→ (optional `--translate`) LLM translation → `<name>.en.srt` (same cue count and timings).
+→ (optional `--translate`) LLM translation → `<name>.en.srt` (each English cue lies within its source cue's span; long translations are split).
 
 Folders run stage by stage (transcribe all files, unload ASR, then translate all) so the ASR model
 and the LLM never compete for VRAM.
@@ -40,8 +40,8 @@ and the LLM never compete for VRAM.
   language detection yet).
 - Macedonian and Serbian output is always Cyrillic (deterministic per-language Latin→Cyrillic
   transliteration).
-- English translation must keep exactly the source cue count and timings; on LLM line-count
-  mismatch: retry, then split the batch, down to single cues.
+- Translation uses JSON keyed by cue id with Ollama structured output; on invalid reply: retry, then split
+  the batch, down to single cues. English cues stay within their source cue's span (long ones are split).
 - Stages skip when their output exists (resumable) unless `--overwrite`; `.srt` writes are atomic.
 - One failing file never stops a batch; summary at the end, non-zero exit if any failed.
 

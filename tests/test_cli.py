@@ -58,7 +58,7 @@ def test_complete_factory_reads_env_and_ensures_model(monkeypatch):
         def ensure_model(self):
             created["ensured"] = True
 
-        def complete(self, system, user):
+        def complete(self, system, user, schema):
             return ""
 
     monkeypatch.setattr(cli, "OllamaClient", FakeClient)
