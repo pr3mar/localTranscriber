@@ -50,7 +50,26 @@ and the LLM never compete for VRAM.
 - Unit tests run on the host without GPU/Docker: `uv run pytest`.
 - Integration tests run inside the container on GPU with short CC0 clips (Mozilla Common Voice).
 
-## Status
+## Commands
 
-Design approved; implementation not started. Commands, module layout and Docker files described
-in the spec do not exist yet — update this file as they land.
+```bash
+uv sync                                   # host dev environment (no GPU libs)
+uv run pytest                             # unit tests on the host
+docker compose build transcribe           # build the GPU image
+docker compose run --rm transcribe /media/<path> --lang mk --translate
+docker compose run --rm -e LOCALTRANSCRIBE_GPU_TESTS=1 --entrypoint python transcribe -m pytest -v
+docker compose run --rm --entrypoint python transcribe scripts/spike_gpu.py /media/<clip>   # GPU smoke test
+```
+
+When running these docker commands from Git Bash on Windows, prefix them with `MSYS_NO_PATHCONV=1` — otherwise Git Bash rewrites `/media/...` paths.
+
+Regenerate `docker/requirements.lock` from Git Bash, not PowerShell (`>` there writes UTF-16):
+`{ echo "--extra-index-url https://download.pytorch.org/whl/cu128"; docker compose run --rm -T --entrypoint pip transcribe freeze; } > docker/requirements.lock`
+
+## Layout
+
+- `src/localtranscribe/` — `audio` (ffmpeg), `engines/` (Parakeet, Whisper), `router`, `cues`,
+  `cyrillic`, `srt`, `translate/` (batching + Ollama client), `pipeline` (staged run), `cli`.
+- Heavy GPU libraries are imported only inside engine constructors so unit tests run on the host.
+- `tests/integration/` runs only in the container with `LOCALTRANSCRIBE_GPU_TESTS=1`.
+- Default LLM lives in two places that must match: `cli.DEFAULT_LLM` and `docker-compose.yml`.
