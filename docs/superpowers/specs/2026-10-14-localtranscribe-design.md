@@ -1,7 +1,7 @@
 # localTranscribe — Design
 
 Date: 2026-10-14
-Status: Approved design, pending spec review
+Status: Approved
 
 ## 1. Goal
 
