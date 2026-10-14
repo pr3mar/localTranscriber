@@ -63,6 +63,8 @@ docker compose run --rm --entrypoint python transcribe scripts/spike_gpu.py /med
 
 When running these docker commands from Git Bash on Windows, prefix them with `MSYS_NO_PATHCONV=1` — otherwise Git Bash rewrites `/media/...` paths.
 
+Local runs use `docker-compose.override.yml`, which mounts `./src` and `./tests` into the container — code changes need no rebuild; rebuild only when dependencies change.
+
 Regenerate `docker/requirements.lock` from Git Bash, not PowerShell (`>` there writes UTF-16):
 `{ echo "--extra-index-url https://download.pytorch.org/whl/cu128"; docker compose run --rm -T --entrypoint pip transcribe freeze; } > docker/requirements.lock`
 

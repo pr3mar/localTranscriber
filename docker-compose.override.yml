@@ -1,0 +1,9 @@
+# Local development only: mounts the working tree so code changes need no image rebuild.
+# The published image bundles the code.
+services:
+  transcribe:
+    volumes:
+      - ./src:/app/src
+      - ./tests:/app/tests
+    environment:
+      PYTHONPATH: /app/src

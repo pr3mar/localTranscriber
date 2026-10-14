@@ -84,5 +84,6 @@ def test_whisper_engine_forces_language_and_word_timestamps():
     assert model.path == "a.wav"
     assert model.kwargs["language"] == "mk"
     assert model.kwargs["word_timestamps"] is True
-    assert model.kwargs["vad_filter"] is True
+    assert model.kwargs["vad_filter"] is False
+    assert model.kwargs["condition_on_previous_text"] is False
     engine.close()

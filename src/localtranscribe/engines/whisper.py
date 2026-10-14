@@ -25,7 +25,12 @@ class WhisperEngine:
 
     def transcribe(self, wav: Path, lang: str) -> list[Segment]:
         segments, _info = self._model.transcribe(
-            str(wav), language=lang, word_timestamps=True, vad_filter=True, beam_size=5
+            str(wav),
+            language=lang,
+            word_timestamps=True,
+            vad_filter=False,
+            condition_on_previous_text=False,
+            beam_size=5,
         )
         return segments_from_whisper(segments)
 
