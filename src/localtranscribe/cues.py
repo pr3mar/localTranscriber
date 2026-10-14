@@ -90,10 +90,36 @@ def _finalize(groups: list[list[Word]]) -> list[Cue]:
     for group in groups:
         text = _join(group)
         raw.append(Cue(group[0].start, group[-1].end, wrap_text(text) or text))
-    cues = []
-    for i, cue in enumerate(raw):
-        end = max(cue.end, cue.start + MIN_DURATION)
-        if i + 1 < len(raw):
-            end = min(end, raw[i + 1].start)
+    cues: list[Cue] = []
+    i = 0
+    while i < len(raw):
+        cue = raw[i]
+        i += 1
+        while i < len(raw) and _clamped_end(cue, raw[i]) - cue.start < MIN_DURATION:
+            merged = _merge(cue, raw[i], MAX_DURATION)
+            if merged is None:
+                break
+            cue = merged
+            i += 1
+        end = _clamped_end(cue, raw[i] if i < len(raw) else None)
+        if end <= cue.start and cues:
+            merged = _merge(cues[-1], cue, None)
+            if merged is not None:
+                cues[-1] = merged
+                continue
         cues.append(Cue(cue.start, max(end, cue.start), cue.text))
     return cues
+
+
+def _clamped_end(cue: Cue, following: Cue | None) -> float:
+    end = max(cue.end, cue.start + MIN_DURATION)
+    return min(end, following.start) if following else end
+
+
+def _merge(first: Cue, second: Cue, max_span: float | None) -> Cue | None:
+    if max_span is not None and second.end - first.start > max_span:
+        return None
+    text = wrap_text(f"{first.text} {second.text}")
+    if text is None:
+        return None
+    return Cue(first.start, max(first.end, second.end), text)

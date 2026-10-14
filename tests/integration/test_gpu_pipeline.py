@@ -41,7 +41,8 @@ def test_transcription_matches_reference(lang, tmp_path):
         engine.close()
     assert cues
     for a, b in zip(cues, cues[1:]):
-        assert a.start <= a.end <= b.start
+        assert a.start < a.end <= b.start
+    assert cues[-1].start < cues[-1].end
     expected, got = normalise(reference, lang), normalise(" ".join(c.text for c in cues), lang)
     assert len(expected & got) / len(expected) >= 0.6, (sorted(expected), sorted(got))
 

@@ -36,7 +36,7 @@ def test_single_short_sentence_is_one_cue_extended_to_min_duration():
 
 
 def test_sentence_end_starts_new_cue():
-    cues = build_cues([seg(*evenly(["Hi.", "There", "you", "go."]))])
+    cues = build_cues([seg((0.0, 1.2, "Hi."), *evenly(["There", "you", "go."], start=1.25))])
     assert [c.text for c in cues] == ["Hi.", "There you go."]
 
 
@@ -72,8 +72,8 @@ def test_overflow_prefers_clause_punctuation():
 
 
 def test_min_duration_never_overlaps_next_cue():
-    cues = build_cues([seg((0.0, 0.3, "Yes.")), seg((0.8, 1.5, "No."))])
-    assert cues == [Cue(0.0, 0.8, "Yes."), Cue(0.8, 1.8, "No.")]
+    cues = build_cues([seg((0.0, 0.3, "Yes.")), seg((0.8, 7.9, "No."))])
+    assert cues == [Cue(0.0, 0.8, "Yes."), Cue(0.8, 7.9, "No.")]
 
 
 def test_overlapping_asr_timings_are_clamped():
@@ -93,3 +93,24 @@ def test_segment_without_word_timings_is_interpolated():
 def test_no_speech_gives_no_cues():
     assert build_cues([]) == []
     assert build_cues([Segment(0.0, 1.0, "  ", ())]) == []
+
+
+def test_zero_length_word_does_not_produce_zero_duration_cue():
+    cues = build_cues([seg((71.27, 72.67, "Уф!")), seg((72.67, 72.67, "Уф!")), seg((72.67, 73.0, "Уф!"))])
+    assert all(c.end > c.start for c in cues)
+    assert all(a.end <= b.start for a, b in zip(cues, cues[1:]))
+    assert flat(cues).split() == ["Уф!"] * 3
+
+
+def test_short_cues_close_together_are_merged():
+    cues = build_cues([seg((74.75, 75.2, "Трни се!")), seg((75.71, 76.4, "Чегове, трни се!"))])
+    assert len(cues) == 1
+    assert cues[0].start == 74.75
+    assert cues[0].text == "Трни се! Чегове, трни се!"
+
+
+def test_short_cue_is_not_merged_when_text_would_not_fit():
+    first = "a" * 30 + "."
+    long = [(0.5, 1.5, "b" * 20), (1.5, 2.5, "c" * 20), (2.5, 3.0, "d" * 20 + ".")]
+    cues = build_cues([seg((0.0, 0.3, first)), seg(*long)])
+    assert [(c.start, c.end) for c in cues] == [(0.0, 0.5), (0.5, 3.0)]
