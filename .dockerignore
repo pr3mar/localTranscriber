@@ -1,0 +1,7 @@
+media/
+.git/
+.venv/
+.idea/
+.superpowers/
+**/__pycache__/
+.pytest_cache/

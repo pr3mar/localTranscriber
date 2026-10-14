@@ -15,4 +15,10 @@ COPY docker/requirements.lock /tmp/requirements.lock
 RUN pip install --no-cache-dir -r /tmp/requirements.lock
 
 WORKDIR /app
-COPY scripts/spike_gpu.py scripts/spike_gpu.py
+COPY pyproject.toml ./
+COPY src ./src
+RUN pip install --no-cache-dir --no-deps .
+COPY tests ./tests
+COPY scripts ./scripts
+
+ENTRYPOINT ["localtranscribe"]
