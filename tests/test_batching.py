@@ -93,3 +93,24 @@ def test_long_translation_is_rewrapped():
     [cue] = translate_cues([Cue(0.0, 3.0, "x")], "es", lambda s, u: f"[1] {long_text}")
     assert all(len(line) <= MAX_CHARS for line in cue.text.split("\n"))
     assert cue.text.replace("\n", " ") == long_text
+
+
+def test_single_line_keeps_leading_number_in_plain_reply():
+    assert translate_cues([Cue(0.0, 1.0, "x")], "es", lambda s, u: "5 people came") == [
+        Cue(0.0, 1.0, "5 people came")
+    ]
+
+
+def test_single_line_keeps_decimal_number_in_plain_reply():
+    assert translate_cues([Cue(0.0, 1.0, "x")], "es", lambda s, u: "1.5 million") == [
+        Cue(0.0, 1.0, "1.5 million")
+    ]
+
+
+def test_single_line_strips_index_marker_with_space():
+    assert translate_cues([Cue(0.0, 1.0, "x")], "es", lambda s, u: "1. Hello") == [Cue(0.0, 1.0, "Hello")]
+
+
+def test_parse_numbered_ignores_numbers_without_marker():
+    assert parse_numbered("1.5 million", 1) is None
+    assert parse_numbered("5 people came", 5) is None

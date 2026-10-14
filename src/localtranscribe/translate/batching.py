@@ -24,7 +24,7 @@ SYSTEM_PROMPT = (
 )
 
 _THINK = re.compile(r"<think>.*?</think>", re.DOTALL)
-_NUMBERED = re.compile(r"^\s*\[?(\d+)[\].):]?\s*(.*?)\s*$")
+_NUMBERED = re.compile(r"^\s*(?:\[(\d+)\]|(\d+)[.):](?=\s|$))\s*(.*?)\s*$")
 
 
 def build_user_prompt(lines: list[str], context: list[str], source_lang: str) -> str:
@@ -41,10 +41,10 @@ def parse_numbered(reply: str, expected: int) -> list[str] | None:
     found: dict[int, str] = {}
     for line in _THINK.sub("", reply).splitlines():
         match = _NUMBERED.match(line)
-        if match and match.group(2):
-            n = int(match.group(1))
+        if match and match.group(3):
+            n = int(match.group(1) or match.group(2))
             if 1 <= n <= expected and n not in found:
-                found[n] = match.group(2)
+                found[n] = match.group(3)
     if len(found) != expected:
         return None
     return [found[i] for i in range(1, expected + 1)]
@@ -53,7 +53,7 @@ def parse_numbered(reply: str, expected: int) -> list[str] | None:
 def _parse_single(reply: str) -> str | None:
     for line in _THINK.sub("", reply).splitlines():
         match = _NUMBERED.match(line)
-        text = match.group(2) if match else line.strip()
+        text = match.group(3) if match else line.strip()
         if text:
             return text
     return None
