@@ -10,7 +10,7 @@ from localtranscribe.translate.batching import Complete
 from localtranscribe.translate.ollama import OllamaClient
 
 DEFAULT_OLLAMA_URL = "http://ollama:11434"
-DEFAULT_LLM = "gemma3:12b"
+DEFAULT_LLM = "gemma3:27b"
 
 
 def _translate_targets(value: str) -> list[str]:

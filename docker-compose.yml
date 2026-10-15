@@ -9,7 +9,7 @@ services:
       - ${MEDIA_DIR:-./media}:/media
     environment:
       OLLAMA_URL: http://ollama:11434
-      LOCALTRANSCRIBE_LLM: ${LOCALTRANSCRIBE_LLM:-gemma3:12b}
+      LOCALTRANSCRIBE_LLM: ${LOCALTRANSCRIBE_LLM:-gemma3:27b}
     depends_on:
       - ollama
     deploy:
