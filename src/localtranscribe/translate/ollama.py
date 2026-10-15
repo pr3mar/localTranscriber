@@ -39,6 +39,8 @@ class OllamaClient:
         }
         try:
             response = self._client.post("/api/chat", json=payload)
+            if response.status_code == 500 and "prediction aborted" in response.text:
+                return ""  # the model looped on degenerate input; batching treats it as an invalid reply
             response.raise_for_status()
         except httpx.HTTPError as e:
             raise OllamaError(f"translation request failed: {e}") from e

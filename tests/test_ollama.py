@@ -82,3 +82,12 @@ def test_complete_http_error_raises():
 
     with pytest.raises(OllamaError, match="translation request failed"):
         make_client(handler).complete("sys", "usr", {"type": "object"})
+
+
+def test_complete_aborted_prediction_returns_empty_reply():
+    # A degenerate source line (e.g. a 200-letter "Шаваааа...") can make the model loop; Ollama then
+    # aborts with a 500. That is a bad reply, not a broken server: let batching retry/split/keep source.
+    def handler(request):
+        return httpx.Response(500, json={"error": "prediction aborted, token repeat limit reached"})
+
+    assert make_client(handler).complete("sys", "usr", {"type": "object"}) == ""
