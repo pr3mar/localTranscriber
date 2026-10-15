@@ -86,4 +86,14 @@ def test_whisper_engine_forces_language_and_word_timestamps():
     assert model.kwargs["word_timestamps"] is True
     assert model.kwargs["vad_filter"] is False
     assert model.kwargs["condition_on_previous_text"] is False
+    assert model.kwargs["hallucination_silence_threshold"] > 0
     engine.close()
+
+
+def test_segments_from_whisper_drops_known_hallucinations():
+    raw = [
+        NS(start=0.0, end=1.0, text=" Хвала што пратите канал.", words=None),
+        NS(start=1.0, end=2.0, text=" Субтитрујуће", words=None),
+        NS(start=2.0, end=3.0, text=" Хвала што си дошао.", words=None),
+    ]
+    assert segments_from_whisper(raw) == [Segment(2.0, 3.0, "Хвала што си дошао.", ())]

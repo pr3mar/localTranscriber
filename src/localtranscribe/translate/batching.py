@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from collections.abc import Callable
 
 from localtranscribe.cues import _CLAUSE_END, _SENTENCE_END, split_to_fit
@@ -20,6 +21,21 @@ MAX_UNIT_CHARS = 250
 _CLOSERS = "\"'“”‘’«»)]"  # closing quotes/brackets that may follow sentence punctuation
 
 LANGUAGE_NAMES = {"mk": "Macedonian", "sr": "Serbian", "sl": "Slovenian", "es": "Spanish", "en": "English"}
+
+# A translation that still reads as Serbian was not translated; such a reply counts as invalid and is retried.
+# Macedonian has no ћ/ђ and none of these words; Latin-script targets have no Cyrillic. Slovenian shares
+# words like "je"/"sam" with Serbian, so only English/Spanish get the word check.
+_CYRILLIC = re.compile(r"[Ѐ-ӿ]")
+_SERBIAN_NOT_MACEDONIAN = re.compile(r"[ђћĐđĆć]|\b(је|ће|шта|хоћу|нећу|нисам|je|će|šta|hoću|neću|nisam)\b", re.I)
+_SERBIAN_LATIN_WORDS = re.compile(r"\b(je|sam|nije|šta|što|nisam|jesam|ajde|bre|kako|ovde)\b", re.I)
+
+
+def untranslated(text: str, target_lang: str) -> bool:
+    if target_lang == "mk":
+        return bool(_SERBIAN_NOT_MACEDONIAN.search(text))
+    if target_lang in ("en", "es", "sl") and _CYRILLIC.search(text):
+        return True
+    return target_lang in ("en", "es") and len(_SERBIAN_LATIN_WORDS.findall(text)) >= 2
 
 
 def build_system_prompt(target_lang: str) -> str:
@@ -73,11 +89,18 @@ def _translate_lines(
     system = build_system_prompt(target_lang)
     user = build_user_prompt(lines, context, source_lang)
     schema = build_schema([str(i) for i in range(1, len(lines) + 1)])
+    fallback = None
     for _ in range(ATTEMPTS):
         parsed = parse_reply(complete(system, user, schema), len(lines))
-        if parsed is not None:
+        if parsed is None:
+            continue
+        if not any(untranslated(p, target_lang) for p in parsed):
             return parsed
+        fallback = parsed
     if len(lines) == 1:
+        if fallback is not None:
+            logger.warning("translation still looks untranslated, keeping it: %r", fallback[0])
+            return fallback
         logger.warning("could not translate line, keeping source text: %r", lines[0])
         return lines
     mid = len(lines) // 2

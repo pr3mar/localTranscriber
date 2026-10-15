@@ -40,8 +40,10 @@ and the LLM never compete for VRAM.
   language detection yet).
 - Macedonian and Serbian output is always Cyrillic (deterministic per-language Latin→Cyrillic
   transliteration).
-- Translation uses JSON keyed by sentence unit with Ollama structured output; on invalid reply: retry, then split
+- Translation uses JSON keyed by sentence unit with Ollama structured output; on invalid reply (incl. one still in Serbian): retry, then split
   the batch, down to single units. Translated cues start and end inside source cue spans, usually one source cue's span (long ones are split).
+- Whisper runs without VAD (it cut real speech) but with `hallucination_silence_threshold`, and drops segments that are only
+  known hallucinated phrases ("Хвала што пратите канал", "Субтитр…").
 - Stages skip when their output exists (resumable) unless `--overwrite`; `.srt` writes are atomic.
 - One failing file never stops a batch; summary at the end, non-zero exit if any failed.
 

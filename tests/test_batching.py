@@ -12,6 +12,7 @@ from localtranscribe.translate.batching import (
     build_user_prompt,
     parse_reply,
     translate_cues,
+    untranslated,
 )
 
 
@@ -208,13 +209,13 @@ def test_fewer_english_words_than_cues_merges_trailing_spans():
 def test_unpunctuated_input_respects_unit_cap():
     seen = []
     short = [Cue(float(i), i + 0.9, f"збор{i} збор") for i in range(12)]
-    translate_cues(short, "mk", "en", lambda s, u, sc: (seen.extend(request_lines(u).values()), echo(s, u))[1])
+    translate_cues(short, "mk", "sr", lambda s, u, sc: (seen.extend(request_lines(u).values()), echo(s, u))[1])
     assert " ".join(seen) == " ".join(flat(c.text) for c in short)
     assert max(len(u.split()) for u in seen) == 2 * MAX_UNIT_CUES
 
     seen = []
     long_cues = [Cue(float(i), i + 0.9, ("долг " * 16).strip()) for i in range(8)]
-    translate_cues(long_cues, "mk", "en", lambda s, u, sc: (seen.extend(request_lines(u).values()), echo(s, u))[1])
+    translate_cues(long_cues, "mk", "sr", lambda s, u, sc: (seen.extend(request_lines(u).values()), echo(s, u))[1])
     assert len(seen) > 1
     assert all(len(u) <= MAX_UNIT_CHARS for u in seen)
 
@@ -255,3 +256,26 @@ def test_macedonian_target_is_transliterated_to_cyrillic():
 def test_serbian_target_is_transliterated_to_cyrillic():
     out = translate_cues([Cue(0.0, 2.0, "Hello.")], "en", "sr", lambda s, u, sc: json.dumps({"1": "Dobar dan, đače."}))
     assert out == [Cue(0.0, 2.0, "Добар дан, ђаче.")]
+
+
+def test_untranslated_detects_leftover_serbian():
+    assert untranslated("Шта радиш, брате?", "mk")
+    assert untranslated("Ćao, đaci.", "mk")
+    assert not untranslated("Што правиш, брате? Ќе дојдам.", "mk")
+    assert untranslated("Где си?", "en")
+    assert untranslated("Ajde, nije to tako.", "es")
+    assert not untranslated("Švabo, ¿dónde estás?", "es")
+    assert not untranslated("Je to lepo, sam vem.", "sl")
+
+
+def test_reply_still_in_source_language_is_retried():
+    replies = iter([{"1": "Шта радиш?"}, {"1": "Што правиш?"}])
+    out = translate_cues([Cue(0.0, 1.0, "Шта радиш?")], "sr", "mk", lambda s, u, sc: json.dumps(next(replies)))
+    assert out == [Cue(0.0, 1.0, "Што правиш?")]
+
+
+def test_line_that_stays_untranslated_keeps_the_reply_and_warns(caplog):
+    with caplog.at_level(logging.WARNING):
+        out = translate_cues([Cue(0.0, 1.0, "Здраво.")], "sr", "en", lambda s, u, sc: json.dumps({"1": "Здраво."}))
+    assert out == [Cue(0.0, 1.0, "Здраво.")]
+    assert "still looks untranslated" in caplog.text
