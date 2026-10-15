@@ -33,6 +33,14 @@
 - Later: Meta Omnilingual ASR (covers mk/sr; no built-in word timestamps).
 - Evaluate WER/CER against hand-corrected Serbian subtitles. Skip lines marked unclear. The references came from Whisper output, so the scores are biased toward it.
 
+## Translation fixes found in real use
+- `untranslated()` flags Serbian names spelled with ђ/ћ/ć in Macedonian output (e.g. "Синђелић"), and Cyrillic names
+  in Spanish/English output, which causes needless retries. Ignore those letters inside capitalised words.
+- The model sometimes keeps a Serbian name in Cyrillic inside a Spanish/English line ("Кристина. Encontramos…").
+  Transliterate leftover Cyrillic words to Latin for Latin-script targets.
+- Names in Spanish/English sometimes keep Serbian case endings ("Štefa", "Vražalića"). A `--glossary` (below) would help.
+- Try parallel requests (`OLLAMA_NUM_PARALLEL` plus concurrent batches). Measure throughput and GPU load first.
+
 ## Ideas
 - Optional `--glossary` file (names, terms), used both as the Whisper `initial_prompt` and in the translation prompt.
 - Investigate translations shifted by one cue, seen in manual review.

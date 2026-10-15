@@ -5,5 +5,6 @@ services:
     volumes:
       - ./src:/app/src
       - ./tests:/app/tests
+      - ./scripts:/app/scripts
     environment:
       PYTHONPATH: /app/src

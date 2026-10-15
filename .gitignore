@@ -4,3 +4,4 @@ __pycache__/
 .pytest_cache/
 media/
 *.srt.tmp
+.idea/

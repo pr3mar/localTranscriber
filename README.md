@@ -25,6 +25,7 @@ with optional translation into any of those languages (English by default). Runs
    ```
 
 The first run downloads the speech and translation models (several GB) into Docker volumes.
+Translation uses `gemma3:27b` through Ollama by default; set `LOCALTRANSCRIBE_LLM` to use another Ollama model.
 `docker compose down` stops the Ollama service afterwards.
 
 ## Options
