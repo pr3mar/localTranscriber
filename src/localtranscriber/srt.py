@@ -2,7 +2,7 @@ import os
 import re
 from pathlib import Path
 
-from localtranscribe.models import Cue
+from localtranscriber.models import Cue
 
 _TIMESTAMP = re.compile(r"(\d+):(\d{2}):(\d{2})[,.](\d{3})")
 

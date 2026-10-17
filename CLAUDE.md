@@ -1,4 +1,4 @@
-# localTranscribe
+# localTranscriber
 
 Local, Dockerised CLI that turns audio/video files (or folders of them) into `.srt` subtitles,
 with optional translation to any of en/es/mk/sl/sr (English by default). Supported source languages: Macedonian (mk), Serbian (sr),
@@ -32,7 +32,7 @@ and the LLM never compete for VRAM.
 | Translation | Local LLM served by Ollama (`ollama/ollama` container), behind a translator interface |
 | Runtime | Docker image on a CUDA 12.8+ base + `docker-compose.yml` (`transcribe` + `ollama` services) |
 | Models | Downloaded on first run into Docker volumes, not baked into the image |
-| Distribution | Image built and pushed manually; compose reads `LOCALTRANSCRIBE_IMAGE` |
+| Distribution | Image built and pushed manually; compose reads `LOCALTRANSCRIBER_IMAGE` |
 
 ## Behaviour rules worth remembering
 
@@ -72,7 +72,7 @@ Regenerate `docker/requirements.lock` from Git Bash, not PowerShell (`>` there w
 
 ## Layout
 
-- `src/localtranscribe/` — `audio` (ffmpeg), `engines/` (Parakeet, Whisper), `router`, `cues`,
+- `src/localtranscriber/` — `audio` (ffmpeg), `engines/` (Parakeet, Whisper), `router`, `cues`,
   `cyrillic`, `srt`, `translate/` (batching + Ollama client), `pipeline` (staged run), `cli`.
 - Heavy GPU libraries are imported only inside engine constructors so unit tests run on the host.
 - Default LLM lives in two places that must match: `cli.DEFAULT_LLM` and `docker-compose.yml`.

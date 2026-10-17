@@ -1,4 +1,4 @@
-# localTranscribe — Design
+# localTranscriber — Design
 
 Date: 2026-10-14
 Status: Approved
@@ -113,7 +113,7 @@ Known limitation: rare words where a digraph is really two letters (e.g. Serbian
 
 ## 4. Components
 
-Python package `localtranscribe` (rename `pyproject.toml` project name from `localtranscoder`). Each module has one job and plain-data interfaces:
+Python package `localtranscriber` (rename `pyproject.toml` project name from `localtranscoder`). Each module has one job and plain-data interfaces:
 
 | Module | Responsibility |
 |---|---|
@@ -137,7 +137,7 @@ Engines and translator are loaded lazily and only for the languages/stages actua
 
 | Service | Image | Notes |
 |---|---|---|
-| `transcribe` | `${LOCALTRANSCRIBE_IMAGE:-localtranscribe:latest}`, built from our `Dockerfile` | CUDA 12.8+ base (needed for current-generation NVIDIA GPUs), Python, NeMo, faster-whisper, ffmpeg. GPU reserved. |
+| `transcribe` | `${LOCALTRANSCRIBER_IMAGE:-localtranscriber:latest}`, built from our `Dockerfile` | CUDA 12.8+ base (needed for current-generation NVIDIA GPUs), Python, NeMo, faster-whisper, ffmpeg. GPU reserved. |
 | `ollama` | `ollama/ollama` (pinned tag) | GPU reserved. Reached from `transcribe` at `http://ollama:11434`. |
 
 Volumes:
@@ -146,7 +146,7 @@ Volumes:
 - `ollama` → Ollama model store (LLM pulled on first use).
 - Bind mount: host media directory → `/media` (configurable via env var).
 
-Distribution: build and push the image manually (`docker compose build`, `docker push`) to a registry of the user's choice; other machines set `LOCALTRANSCRIBE_IMAGE` and `docker compose pull`. No CI.
+Distribution: build and push the image manually (`docker compose build`, `docker push`) to a registry of the user's choice; other machines set `LOCALTRANSCRIBER_IMAGE` and `docker compose pull`. No CI.
 
 ### Known risk — dependency conflict
 

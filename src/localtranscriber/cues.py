@@ -1,6 +1,6 @@
 from collections.abc import Iterator
 
-from localtranscribe.models import Cue, Segment, Word
+from localtranscriber.models import Cue, Segment, Word
 
 MAX_CHARS = 42
 MAX_DURATION = 7.0

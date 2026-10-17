@@ -1,7 +1,7 @@
 import gc
 from pathlib import Path
 
-from localtranscribe.models import Segment, Word
+from localtranscriber.models import Segment, Word
 
 MODEL_NAME = "nvidia/parakeet-tdt-0.6b-v3"
 

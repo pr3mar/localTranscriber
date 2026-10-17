@@ -3,7 +3,7 @@ import re
 from collections.abc import Iterable
 from pathlib import Path
 
-from localtranscribe.models import Segment, Word
+from localtranscriber.models import Segment, Word
 
 # Whisper (trained on subtitled video) invents these over music and silence; a segment that is only
 # such a phrase is dropped. VAD stays off (it cut real speech), so this list is the guard.

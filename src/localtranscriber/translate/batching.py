@@ -3,9 +3,9 @@ import logging
 import re
 from collections.abc import Callable
 
-from localtranscribe.cues import _CLAUSE_END, _SENTENCE_END, split_to_fit
-from localtranscribe.cyrillic import CYRILLIC_LANGS, to_cyrillic
-from localtranscribe.models import Cue
+from localtranscriber.cues import _CLAUSE_END, _SENTENCE_END, split_to_fit
+from localtranscriber.cyrillic import CYRILLIC_LANGS, to_cyrillic
+from localtranscriber.models import Cue
 
 logger = logging.getLogger(__name__)
 

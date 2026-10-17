@@ -4,10 +4,10 @@ import os
 import sys
 from pathlib import Path
 
-from localtranscribe.pipeline import FileResult, discover_media, run
-from localtranscribe.router import SUPPORTED_LANGS, load_engine
-from localtranscribe.translate.batching import Complete
-from localtranscribe.translate.ollama import OllamaClient
+from localtranscriber.pipeline import FileResult, discover_media, run
+from localtranscriber.router import SUPPORTED_LANGS, load_engine
+from localtranscriber.translate.batching import Complete
+from localtranscriber.translate.ollama import OllamaClient
 
 DEFAULT_OLLAMA_URL = "http://ollama:11434"
 DEFAULT_LLM = "gemma3:27b"
@@ -24,7 +24,7 @@ def _translate_targets(value: str) -> list[str]:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="localtranscribe", description="Media to .srt subtitles, locally.")
+    parser = argparse.ArgumentParser(prog="localtranscriber", description="Media to .srt subtitles, locally.")
     parser.add_argument("path", type=Path, help="media file or folder (non-recursive)")
     parser.add_argument("--lang", required=True, choices=SUPPORTED_LANGS, help="primary spoken language")
     parser.add_argument(
@@ -44,7 +44,7 @@ def build_parser() -> argparse.ArgumentParser:
 def _complete_factory() -> Complete:
     client = OllamaClient(
         os.environ.get("OLLAMA_URL", DEFAULT_OLLAMA_URL),
-        os.environ.get("LOCALTRANSCRIBE_LLM", DEFAULT_LLM),
+        os.environ.get("LOCALTRANSCRIBER_LLM", DEFAULT_LLM),
     )
     client.ensure_model()
     return client.complete

@@ -1,9 +1,9 @@
 import json
 import logging
 
-from localtranscribe.cues import MAX_CHARS
-from localtranscribe.models import Cue
-from localtranscribe.translate.batching import (
+from localtranscriber.cues import MAX_CHARS
+from localtranscriber.models import Cue
+from localtranscriber.translate.batching import (
     BATCH_SIZE,
     CONTEXT_SIZE,
     MAX_UNIT_CHARS,

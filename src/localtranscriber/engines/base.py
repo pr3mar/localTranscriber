@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import Protocol
 
-from localtranscribe.models import Segment
+from localtranscriber.models import Segment
 
 
 class Engine(Protocol):

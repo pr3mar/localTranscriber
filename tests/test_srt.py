@@ -1,5 +1,5 @@
-from localtranscribe.models import Cue
-from localtranscribe.srt import format_srt, format_timestamp, parse_srt, read_srt, write_srt
+from localtranscriber.models import Cue
+from localtranscriber.srt import format_srt, format_timestamp, parse_srt, read_srt, write_srt
 
 
 def test_format_timestamp():

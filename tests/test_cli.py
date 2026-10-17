@@ -1,7 +1,7 @@
 import pytest
 
-from localtranscribe import cli
-from localtranscribe.pipeline import FileResult
+from localtranscriber import cli
+from localtranscriber.pipeline import FileResult
 
 
 def test_rejects_unknown_language(tmp_path):
@@ -63,7 +63,7 @@ def test_complete_factory_reads_env_and_ensures_model(monkeypatch):
 
     monkeypatch.setattr(cli, "OllamaClient", FakeClient)
     monkeypatch.setenv("OLLAMA_URL", "http://x:1")
-    monkeypatch.setenv("LOCALTRANSCRIBE_LLM", "m:1")
+    monkeypatch.setenv("LOCALTRANSCRIBER_LLM", "m:1")
     cli._complete_factory()
     assert created == {"url": "http://x:1", "model": "m:1", "ensured": True}
 

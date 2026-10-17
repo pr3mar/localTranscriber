@@ -3,7 +3,7 @@ import json
 import httpx
 import pytest
 
-from localtranscribe.translate.ollama import OllamaClient, OllamaError
+from localtranscriber.translate.ollama import OllamaClient, OllamaError
 
 BASE = "http://ollama:11434"
 

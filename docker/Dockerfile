@@ -21,4 +21,4 @@ RUN pip install --no-cache-dir --no-deps .
 COPY tests ./tests
 COPY scripts ./scripts
 
-ENTRYPOINT ["localtranscribe"]
+ENTRYPOINT ["localtranscriber"]

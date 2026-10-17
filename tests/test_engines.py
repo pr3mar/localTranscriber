@@ -1,9 +1,9 @@
 from pathlib import Path
 from types import SimpleNamespace as NS
 
-from localtranscribe.engines.parakeet import ParakeetEngine, segments_from_parakeet
-from localtranscribe.engines.whisper import WhisperEngine, segments_from_whisper
-from localtranscribe.models import Segment, Word
+from localtranscriber.engines.parakeet import ParakeetEngine, segments_from_parakeet
+from localtranscriber.engines.whisper import WhisperEngine, segments_from_whisper
+from localtranscriber.models import Segment, Word
 
 PARAKEET_STAMPS = {
     "word": [

@@ -3,11 +3,11 @@ from pathlib import Path
 
 import pytest
 
-from localtranscribe import pipeline
-from localtranscribe.audio import AudioError
-from localtranscribe.models import Cue, Segment, Word
-from localtranscribe.pipeline import discover_media, run, source_srt_path, target_srt_path
-from localtranscribe.srt import read_srt, write_srt
+from localtranscriber import pipeline
+from localtranscriber.audio import AudioError
+from localtranscriber.models import Cue, Segment, Word
+from localtranscriber.pipeline import discover_media, run, source_srt_path, target_srt_path
+from localtranscriber.srt import read_srt, write_srt
 
 SEGMENTS = [Segment(0.0, 1.2, "Zdravo svete.", (Word(0.0, 0.5, "Zdravo"), Word(0.6, 1.2, "svete.")))]
 

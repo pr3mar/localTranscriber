@@ -4,8 +4,8 @@ import wave
 
 import pytest
 
-from localtranscribe import audio
-from localtranscribe.audio import AudioError, extract_audio
+from localtranscriber import audio
+from localtranscriber.audio import AudioError, extract_audio
 
 
 class FakeRun:

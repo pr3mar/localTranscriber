@@ -1,7 +1,7 @@
 import pytest
 
-from localtranscribe.cues import MAX_CHARS, MAX_DURATION, build_cues, split_to_fit, wrap_text
-from localtranscribe.models import Cue, Segment, Word
+from localtranscriber.cues import MAX_CHARS, MAX_DURATION, build_cues, split_to_fit, wrap_text
+from localtranscriber.models import Cue, Segment, Word
 
 
 def seg(*words):

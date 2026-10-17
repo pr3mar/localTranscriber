@@ -1,4 +1,4 @@
-# localTranscribe
+# localTranscriber
 
 Turn audio/video into `.srt` subtitles locally — Macedonian, Serbian, Slovenian, Spanish, English —
 with optional translation into any of those languages (English by default). Runs entirely in Docker on an NVIDIA GPU; no paid APIs.
@@ -12,7 +12,7 @@ with optional translation into any of those languages (English by default). Runs
 
 1. Copy `docker-compose.yml` to the machine.
 2. Set where your media lives and pull the image (`pr3mar/local-transcriber:latest` by default;
-   set `LOCALTRANSCRIBE_IMAGE` to use another tag, e.g. `pr3mar/local-transcriber:0.1.0`):
+   set `LOCALTRANSCRIBER_IMAGE` to use another tag, e.g. `pr3mar/local-transcriber:0.1.1`):
    ```bash
    export MEDIA_DIR=/path/to/videos
    docker compose pull
@@ -25,7 +25,7 @@ with optional translation into any of those languages (English by default). Runs
    ```
 
 The first run downloads the speech and translation models (several GB) into Docker volumes.
-Translation uses `gemma3:27b` through Ollama by default; set `LOCALTRANSCRIBE_LLM` to use another Ollama model.
+Translation uses `gemma3:27b` through Ollama by default; set `LOCALTRANSCRIBER_LLM` to use another Ollama model.
 `docker compose down` stops the Ollama service afterwards.
 
 ## Options

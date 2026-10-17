@@ -1,6 +1,6 @@
 import pytest
 
-from localtranscribe.router import SUPPORTED_LANGS, engine_name
+from localtranscriber.router import SUPPORTED_LANGS, engine_name
 
 
 def test_engine_routing():

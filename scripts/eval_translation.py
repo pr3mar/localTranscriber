@@ -16,9 +16,9 @@ import time
 from collections import Counter
 from pathlib import Path
 
-from localtranscribe.srt import read_srt
-from localtranscribe.translate.batching import translate_cues, untranslated
-from localtranscribe.translate.ollama import OllamaClient
+from localtranscriber.srt import read_srt
+from localtranscriber.translate.batching import translate_cues, untranslated
+from localtranscriber.translate.ollama import OllamaClient
 
 
 def chrf(hyp: str, ref: str, n: int = 6, beta: float = 2.0) -> float:

@@ -1,4 +1,4 @@
-from localtranscribe.engines.base import Engine
+from localtranscriber.engines.base import Engine
 
 ENGINE_FOR_LANG = {"en": "parakeet", "es": "parakeet", "sl": "parakeet", "mk": "whisper", "sr": "whisper"}
 SUPPORTED_LANGS = tuple(sorted(ENGINE_FOR_LANG))
@@ -13,9 +13,9 @@ def engine_name(lang: str) -> str:
 
 def load_engine(lang: str) -> Engine:
     if engine_name(lang) == "parakeet":
-        from localtranscribe.engines.parakeet import ParakeetEngine
+        from localtranscriber.engines.parakeet import ParakeetEngine
 
         return ParakeetEngine()
-    from localtranscribe.engines.whisper import WhisperEngine
+    from localtranscriber.engines.whisper import WhisperEngine
 
     return WhisperEngine()

@@ -1,6 +1,6 @@
 import pytest
 
-from localtranscribe.cyrillic import CYRILLIC_LANGS, to_cyrillic
+from localtranscriber.cyrillic import CYRILLIC_LANGS, to_cyrillic
 
 
 def test_cyrillic_languages():

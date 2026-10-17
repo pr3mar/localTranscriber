@@ -4,13 +4,13 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from localtranscribe.audio import extract_audio
-from localtranscribe.cues import build_cues
-from localtranscribe.cyrillic import CYRILLIC_LANGS, to_cyrillic
-from localtranscribe.engines.base import Engine
-from localtranscribe.models import Cue
-from localtranscribe.srt import read_srt, write_srt
-from localtranscribe.translate.batching import Complete, translate_cues
+from localtranscriber.audio import extract_audio
+from localtranscriber.cues import build_cues
+from localtranscriber.cyrillic import CYRILLIC_LANGS, to_cyrillic
+from localtranscriber.engines.base import Engine
+from localtranscriber.models import Cue
+from localtranscriber.srt import read_srt, write_srt
+from localtranscriber.translate.batching import Complete, translate_cues
 
 logger = logging.getLogger(__name__)
 
