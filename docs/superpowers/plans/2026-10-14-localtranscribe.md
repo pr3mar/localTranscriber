@@ -84,12 +84,12 @@ This task answers the spec's main risk. It produces the Docker scaffolding the r
 - Consumes: nothing.
 - Produces: a buildable `transcribe` service with `torch`, `nemo_toolkit[asr]`, `faster-whisper`, `httpx`, `pytest` pinned in `docker/requirements.lock`; `ollama` service; volumes `models` (mounted `/models`, `HF_HOME=/models/hf`) and `ollama`; media bind mount `${MEDIA_DIR:-./media}` → `/media`.
 
-- [ ] **Step 1: Verify Docker can see the GPU**
+- [x] **Step 1: Verify Docker can see the GPU**
 
 Run: `docker run --rm --gpus all nvidia/cuda:12.8.1-base-ubuntu24.04 nvidia-smi`
 Expected: the nvidia-smi table listing the GPU. If it fails, STOP and report the error to the user (Docker Desktop GPU support / WSL2 / driver issue). Do not continue.
 
-- [ ] **Step 2: Create `.gitignore`**
+- [x] **Step 2: Create `.gitignore`**
 
 ```gitignore
 .venv/
@@ -100,7 +100,7 @@ media/
 *.srt.tmp
 ```
 
-- [ ] **Step 3: Create the spike `docker/Dockerfile` (unpinned)**
+- [x] **Step 3: Create the spike `docker/Dockerfile` (unpinned)**
 
 ```dockerfile
 FROM nvidia/cuda:12.8.1-cudnn-runtime-ubuntu24.04
@@ -123,7 +123,7 @@ WORKDIR /app
 COPY scripts/spike_gpu.py scripts/spike_gpu.py
 ```
 
-- [ ] **Step 4: Create `docker-compose.yml`**
+- [x] **Step 4: Create `docker-compose.yml`**
 
 Look up the latest stable release tag at https://github.com/ollama/ollama/releases and replace `OLLAMA_TAG` below with that exact tag (for example `0.12.6`). Never use `latest`.
 
@@ -169,7 +169,7 @@ volumes:
 
 `gemma3:12b` is a provisional default. Task 12 replaces it with a model chosen by comparison.
 
-- [ ] **Step 5: Create `scripts/spike_gpu.py`**
+- [x] **Step 5: Create `scripts/spike_gpu.py`**
 
 ```python
 """GPU smoke test: both ASR engines load and transcribe on CUDA in this image.
@@ -224,11 +224,11 @@ if __name__ == "__main__":
     main(sys.argv[1])
 ```
 
-- [ ] **Step 6: Get a sample clip from the user**
+- [x] **Step 6: Get a sample clip from the user**
 
 Ask the user to put a short (under 1 minute) English, Spanish or Slovenian speech clip at `media/spike.<ext>` in the repo (`media/` is git-ignored). Wait until it exists.
 
-- [ ] **Step 7: Build and run the spike**
+- [x] **Step 7: Build and run the spike**
 
 Run:
 ```bash
@@ -242,7 +242,7 @@ Expected:
 
 The first run downloads several GB of models into the `models` volume.
 
-- [ ] **Step 8: If it fails, make at most two targeted fix attempts, then escalate**
+- [x] **Step 8: If it fails, make at most two targeted fix attempts, then escalate**
 
 Allowed fixes:
 - Pin `ctranslate2`/`faster-whisper` to versions matching the installed cuDNN.
@@ -251,7 +251,7 @@ Allowed fixes:
 
 If it still fails after two attempts, STOP and report the exact errors to the user. The spec's fallback (Whisper in its own container) changes the design and needs their approval.
 
-- [ ] **Step 9: Pin dependencies**
+- [x] **Step 9: Pin dependencies**
 
 Run in Git Bash. PowerShell's `>` writes UTF-16, which pip can't read.
 ```bash
@@ -259,7 +259,7 @@ Run in Git Bash. PowerShell's `>` writes UTF-16, which pip can't read.
 ```
 Expected: `docker/requirements.lock` has `torch==...+cu128`, `nemo_toolkit==...`, `faster-whisper==...`, `httpx==...`, `pytest==...`.
 
-- [ ] **Step 10: Switch the Dockerfile to the lock file and re-verify**
+- [x] **Step 10: Switch the Dockerfile to the lock file and re-verify**
 
 Replace the two `RUN pip install ...` lines in `docker/Dockerfile` with:
 
@@ -275,7 +275,7 @@ docker compose run --rm --entrypoint python transcribe scripts/spike_gpu.py /med
 ```
 Expected: same output as Step 7.
 
-- [ ] **Step 11: Commit**
+- [x] **Step 11: Commit**
 
 ```bash
 git add .gitignore docker/Dockerfile docker/requirements.lock docker-compose.yml scripts/spike_gpu.py
@@ -298,7 +298,7 @@ Report the spike output (versions, timings, transcripts) to the user before cont
   - `Word(start: float, end: float, text: str)`, `Segment(start: float, end: float, text: str, words: tuple[Word, ...] = ())`, `Cue(start: float, end: float, text: str)`. All frozen dataclasses in `localtranscribe.models`. `Cue.text` may contain `"\n"` between lines.
   - `localtranscribe.srt`: `format_timestamp(seconds: float) -> str`, `format_srt(cues: list[Cue]) -> str`, `parse_srt(text: str) -> list[Cue]`, `write_srt(path: Path, cues: list[Cue]) -> None` (atomic), `read_srt(path: Path) -> list[Cue]`.
 
-- [ ] **Step 1: Replace `pyproject.toml`**
+- [x] **Step 1: Replace `pyproject.toml`**
 
 ```toml
 [project]
@@ -329,7 +329,7 @@ testpaths = ["tests"]
 markers = ["gpu: needs an NVIDIA GPU and model downloads; runs inside the container"]
 ```
 
-- [ ] **Step 2: Create the package, models and test gating**
+- [x] **Step 2: Create the package, models and test gating**
 
 `src/localtranscribe/__init__.py`:
 ```python
@@ -382,7 +382,7 @@ def pytest_collection_modifyitems(config, items):
 Run: `uv sync`
 Expected: installs `httpx` and `pytest` into `.venv` and `localtranscribe` in editable mode.
 
-- [ ] **Step 3: Write the failing SRT tests**
+- [x] **Step 3: Write the failing SRT tests**
 
 `tests/test_srt.py`:
 ```python
@@ -431,12 +431,12 @@ def test_write_srt_is_atomic_and_overwrites(tmp_path):
     assert [p.name for p in tmp_path.iterdir()] == ["a.mk.srt"]
 ```
 
-- [ ] **Step 4: Run the tests and confirm they fail**
+- [x] **Step 4: Run the tests and confirm they fail**
 
 Run: `uv run pytest tests/test_srt.py -v`
 Expected: FAIL with `ModuleNotFoundError: No module named 'localtranscribe.srt'`.
 
-- [ ] **Step 5: Implement `src/localtranscribe/srt.py`**
+- [x] **Step 5: Implement `src/localtranscribe/srt.py`**
 
 ```python
 import os
@@ -496,12 +496,12 @@ def read_srt(path: Path) -> list[Cue]:
     return parse_srt(path.read_text(encoding="utf-8-sig"))
 ```
 
-- [ ] **Step 6: Run the tests and confirm they pass**
+- [x] **Step 6: Run the tests and confirm they pass**
 
 Run: `uv run pytest tests/test_srt.py -v`
 Expected: 6 passed.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add pyproject.toml uv.lock src/localtranscribe/__init__.py src/localtranscribe/models.py src/localtranscribe/srt.py tests/conftest.py tests/test_srt.py
@@ -519,7 +519,7 @@ git commit -m "feat: package scaffold, data models and SRT read/write" -m "Co-Au
 **Interfaces:**
 - Produces: `CYRILLIC_LANGS: frozenset[str]` (`{"mk", "sr"}`), `to_cyrillic(text: str, lang: str) -> str`. Raises `KeyError` for other languages. Cyrillic, digits and punctuation pass through unchanged.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_cyrillic.py`:
 ```python
@@ -567,12 +567,12 @@ def test_other_language_rejected():
         to_cyrillic("hola", "es")
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `uv run pytest tests/test_cyrillic.py -v`
 Expected: FAIL with `ModuleNotFoundError`.
 
-- [ ] **Step 3: Implement `src/localtranscribe/cyrillic.py`**
+- [x] **Step 3: Implement `src/localtranscribe/cyrillic.py`**
 
 ```python
 import unicodedata
@@ -615,12 +615,12 @@ def to_cyrillic(text: str, lang: str) -> str:
     return "".join(out)
 ```
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `uv run pytest tests/test_cyrillic.py -v`
 Expected: 14 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/localtranscribe/cyrillic.py tests/test_cyrillic.py
@@ -642,7 +642,7 @@ git commit -m "feat: Macedonian and Serbian Latin to Cyrillic transliteration" -
   - `wrap_text(text: str) -> str | None`: one line if it fits; otherwise the most balanced two lines, each ≤`MAX_CHARS`; `None` if two lines can't hold it. Collapses whitespace; `""` for blank input.
   - `build_cues(segments: list[Segment]) -> list[Cue]`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_cues.py`:
 ```python
@@ -743,12 +743,12 @@ def test_no_speech_gives_no_cues():
     assert build_cues([Segment(0.0, 1.0, "  ", ())]) == []
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `uv run pytest tests/test_cues.py -v`
 Expected: FAIL with `ModuleNotFoundError`.
 
-- [ ] **Step 3: Implement `src/localtranscribe/cues.py`**
+- [x] **Step 3: Implement `src/localtranscribe/cues.py`**
 
 ```python
 from collections.abc import Iterator
@@ -852,12 +852,12 @@ def _finalize(groups: list[list[Word]]) -> list[Cue]:
     return cues
 ```
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `uv run pytest tests/test_cues.py -v`
 Expected: 11 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/localtranscribe/cues.py tests/test_cues.py
@@ -875,7 +875,7 @@ git commit -m "feat: build readable subtitle cues from timed segments" -m "Co-Au
 **Interfaces:**
 - Produces: `AudioError(Exception)`; `has_audio_stream(src: Path) -> bool`; `extract_audio(src: Path, dst: Path) -> None` (writes 16 kHz mono 16-bit PCM WAV; raises `AudioError` with a readable reason).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_audio.py`:
 ```python
@@ -964,12 +964,12 @@ def test_real_video_without_audio(tmp_path):
         extract_audio(src, tmp_path / "out.wav")
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `uv run pytest tests/test_audio.py -v`
 Expected: FAIL with `ModuleNotFoundError`. The two `needs_ffmpeg` tests are skipped on the host.
 
-- [ ] **Step 3: Implement `src/localtranscribe/audio.py`**
+- [x] **Step 3: Implement `src/localtranscribe/audio.py`**
 
 ```python
 import subprocess
@@ -1002,12 +1002,12 @@ def extract_audio(src: Path, dst: Path) -> None:
         raise AudioError(f"ffmpeg failed for {src.name}: {proc.stderr.strip()[-500:]}")
 ```
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `uv run pytest tests/test_audio.py -v`
 Expected: 4 passed, 2 skipped.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/localtranscribe/audio.py tests/test_audio.py
@@ -1030,7 +1030,7 @@ git commit -m "feat: extract 16 kHz mono audio with ffmpeg" -m "Co-Authored-By: 
   - `segments_from_parakeet(hypothesis) -> list[Segment]`; `ParakeetEngine(model_name: str = "nvidia/parakeet-tdt-0.6b-v3", model=None)`.
   - `router.SUPPORTED_LANGS: tuple[str, ...]` (sorted: `("en", "es", "mk", "sl", "sr")`), `engine_name(lang: str) -> str` (raises `ValueError`), `load_engine(lang: str) -> Engine`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_engines.py`:
 ```python
@@ -1142,12 +1142,12 @@ def test_unsupported_language():
         engine_name("bg")
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `uv run pytest tests/test_engines.py tests/test_router.py -v`
 Expected: FAIL with `ModuleNotFoundError`.
 
-- [ ] **Step 3: Implement the engines and router**
+- [x] **Step 3: Implement the engines and router**
 
 `src/localtranscribe/engines/__init__.py`: empty file.
 
@@ -1291,12 +1291,12 @@ def load_engine(lang: str) -> Engine:
     return WhisperEngine()
 ```
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `uv run pytest tests/test_engines.py tests/test_router.py -v`
 Expected: 9 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/localtranscribe/engines src/localtranscribe/router.py tests/test_engines.py tests/test_router.py
@@ -1320,7 +1320,7 @@ git commit -m "feat: Parakeet and Whisper engines with language router" -m "Co-A
   - `parse_numbered(reply: str, expected: int) -> list[str] | None`.
   - `translate_cues(cues: list[Cue], source_lang: str, complete: Complete) -> list[Cue]`: same length, same timings, English text re-wrapped.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_batching.py`:
 ```python
@@ -1421,12 +1421,12 @@ def test_long_translation_is_rewrapped():
     assert cue.text.replace("\n", " ") == long_text
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `uv run pytest tests/test_batching.py -v`
 Expected: FAIL with `ModuleNotFoundError`.
 
-- [ ] **Step 3: Implement `src/localtranscribe/translate/batching.py`**
+- [x] **Step 3: Implement `src/localtranscribe/translate/batching.py`**
 
 `src/localtranscribe/translate/__init__.py`: empty file.
 
@@ -1523,12 +1523,12 @@ def translate_cues(cues: list[Cue], source_lang: str, complete: Complete) -> lis
     return [Cue(c.start, c.end, wrap_text(t) or t) for c, t in zip(cues, translated, strict=True)]
 ```
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `uv run pytest tests/test_batching.py -v`
 Expected: 9 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/localtranscribe/translate tests/test_batching.py
@@ -1547,7 +1547,7 @@ git commit -m "feat: batched, alignment-safe subtitle translation" -m "Co-Author
 - Consumes: httpx.
 - Produces: `OllamaError(Exception)`; `OllamaClient(base_url: str, model: str, *, client: httpx.Client | None = None, timeout: float = 600.0)` with `ensure_model() -> None` (pulls the model if missing) and `complete(system: str, user: str) -> str` (matches `Complete` from Task 7).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_ollama.py`:
 ```python
@@ -1636,12 +1636,12 @@ def test_complete_http_error_raises():
         make_client(handler).complete("sys", "usr")
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `uv run pytest tests/test_ollama.py -v`
 Expected: FAIL with `ModuleNotFoundError`.
 
-- [ ] **Step 3: Implement `src/localtranscribe/translate/ollama.py`**
+- [x] **Step 3: Implement `src/localtranscribe/translate/ollama.py`**
 
 ```python
 import httpx
@@ -1690,12 +1690,12 @@ class OllamaClient:
         return response.json()["message"]["content"]
 ```
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `uv run pytest tests/test_ollama.py -v`
 Expected: 7 passed.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/localtranscribe/translate/ollama.py tests/test_ollama.py
@@ -1719,7 +1719,7 @@ git commit -m "feat: Ollama client with model auto-pull" -m "Co-Authored-By: Cla
   - `source_srt_path(media: Path, lang: str) -> Path`; `target_srt_path(media: Path) -> Path`.
   - `run(media_files: list[Path], lang: str, *, translate: bool, overwrite: bool, from_srt: bool, engine_factory: Callable[[str], Engine], complete_factory: Callable[[], Complete]) -> list[FileResult]`. `complete_factory` must check that the backend is ready before returning (for example, pull the model).
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_pipeline.py`:
 ```python
@@ -1915,12 +1915,12 @@ def test_same_stem_collision_fails_loudly(tmp_path):
     assert engine.transcribed == ["mk"]
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `uv run pytest tests/test_pipeline.py -v`
 Expected: FAIL with `ModuleNotFoundError`.
 
-- [ ] **Step 3: Implement `src/localtranscribe/pipeline.py`**
+- [x] **Step 3: Implement `src/localtranscribe/pipeline.py`**
 
 ```python
 import logging
@@ -2067,17 +2067,17 @@ def _translate_stage(results, lang, overwrite, complete_factory) -> None:
             r.error = f"translation failed: {e}"
 ```
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `uv run pytest tests/test_pipeline.py -v`
 Expected: 15 passed.
 
-- [ ] **Step 5: Run the whole suite**
+- [x] **Step 5: Run the whole suite**
 
 Run: `uv run pytest -v`
 Expected: all pass; only the `needs_ffmpeg` tests are skipped.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add src/localtranscribe/pipeline.py tests/test_pipeline.py
@@ -2096,7 +2096,7 @@ git commit -m "feat: staged, resumable transcribe-then-translate pipeline" -m "C
 - Consumes: `discover_media`, `run`, `FileResult` (Task 9); `SUPPORTED_LANGS`, `load_engine` (Task 6); `OllamaClient` (Task 8).
 - Produces: `main(argv: list[str] | None = None) -> int` (0 = all ok, 1 = any file failed, 2 = usage error); `DEFAULT_LLM`, `DEFAULT_OLLAMA_URL`; env vars `OLLAMA_URL`, `LOCALTRANSCRIBE_LLM`.
 
-- [ ] **Step 1: Write the failing tests**
+- [x] **Step 1: Write the failing tests**
 
 `tests/test_cli.py`:
 ```python
@@ -2170,12 +2170,12 @@ def test_complete_factory_reads_env_and_ensures_model(monkeypatch):
     assert created == {"url": "http://x:1", "model": "m:1", "ensured": True}
 ```
 
-- [ ] **Step 2: Run the tests and confirm they fail**
+- [x] **Step 2: Run the tests and confirm they fail**
 
 Run: `uv run pytest tests/test_cli.py -v`
 Expected: FAIL with `ImportError` / `ModuleNotFoundError`.
 
-- [ ] **Step 3: Implement `src/localtranscribe/cli.py`**
+- [x] **Step 3: Implement `src/localtranscribe/cli.py`**
 
 ```python
 import argparse
@@ -2247,12 +2247,12 @@ if __name__ == "__main__":
     sys.exit(main())
 ```
 
-- [ ] **Step 4: Run the tests and confirm they pass**
+- [x] **Step 4: Run the tests and confirm they pass**
 
 Run: `uv run pytest -v`
 Expected: all pass (6 new CLI tests); only the `needs_ffmpeg` tests are skipped.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add src/localtranscribe/cli.py tests/test_cli.py
@@ -2271,7 +2271,7 @@ git commit -m "feat: localtranscribe CLI with run summary and exit codes" -m "Co
 - Consumes: everything above.
 - Produces: an image whose entrypoint is `localtranscribe`. `docker compose run --rm transcribe /media/<path> --lang <l> [--translate]` works end to end.
 
-- [ ] **Step 1: Get CC0 fixture clips (needs the user)**
+- [x] **Step 1: Get CC0 fixture clips (needs the user)**
 
 Ask the user to download one short clip per language (en, es, sl, mk, sr) from Mozilla Common Voice (CC0) along with each clip's sentence. Save them as `tests/fixtures/audio/<lang>.<ext>` (e.g. `mk.mp3`) and the sentence as `tests/fixtures/audio/<lang>.txt` (UTF-8). Wait until all ten files exist.
 
@@ -2284,7 +2284,7 @@ taken from Mozilla Common Voice, released under CC0 1.0. Used only by the in-con
 GPU integration tests (`tests/integration/`).
 ```
 
-- [ ] **Step 2: Write the integration tests**
+- [x] **Step 2: Write the integration tests**
 
 `tests/integration/test_gpu_pipeline.py`:
 ```python
@@ -2349,7 +2349,7 @@ def test_cli_end_to_end_with_translation(tmp_path):
     assert all(c.text.strip() for c in target)
 ```
 
-- [ ] **Step 3: Append the app install to `docker/Dockerfile`**
+- [x] **Step 3: Append the app install to `docker/Dockerfile`**
 
 Append after the existing `RUN pip install --no-cache-dir -r /tmp/requirements.lock` line and any `ENV LD_LIBRARY_PATH` line from Task 1:
 
@@ -2365,7 +2365,7 @@ ENTRYPOINT ["localtranscribe"]
 
 Remove the now-redundant `COPY scripts/spike_gpu.py scripts/spike_gpu.py` line.
 
-- [ ] **Step 4: Build and run the full suite in the container**
+- [x] **Step 4: Build and run the full suite in the container**
 
 Run:
 ```bash
@@ -2376,7 +2376,7 @@ Expected: all unit tests pass (including the two real-ffmpeg tests, which aren't
 
 If a language falls below the 0.6 overlap threshold, show the user the printed expected/got word sets before changing anything. A threshold change is their decision.
 
-- [ ] **Step 5: Real-use smoke check**
+- [x] **Step 5: Real-use smoke check**
 
 Run with a real episode the user chooses (`MEDIA_DIR` pointing at its folder):
 ```bash
@@ -2384,7 +2384,7 @@ docker compose run --rm transcribe /media/<file> --lang <lang> --translate
 ```
 Expected: `<file>.<lang>.srt` and `<file>.en.srt` next to the file, and `1 succeeded, 0 failed`. Ask the user to open both in a player and judge timing and readability.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add docker/Dockerfile tests/integration tests/fixtures
@@ -2403,7 +2403,7 @@ git commit -m "build: app image entrypoint and in-container GPU integration test
 - Consumes: `OllamaClient` (Task 8), `translate_cues` (Task 7), `read_srt` (Task 2), fixture texts (Task 11).
 - Produces: the default model name, used in both `cli.DEFAULT_LLM` and the compose default.
 
-- [ ] **Step 1: Create `scripts/compare_llms.py`**
+- [x] **Step 1: Create `scripts/compare_llms.py`** (built as `scripts/eval_translation.py`)
 
 ```python
 """Translate sample subtitles with several Ollama models and print them side by side.
@@ -2459,7 +2459,7 @@ if __name__ == "__main__":
     main()
 ```
 
-- [ ] **Step 2: Pick candidates and run the comparison**
+- [x] **Step 2: Pick candidates and run the comparison**
 
 Check https://ollama.com/library for current multilingual instruction models that fit in GPU memory alongside nothing else (the ASR model is unloaded before translation). Include `gemma3:12b` as the baseline plus 2–3 current candidates. Ask the user for one or two real `.mk.srt`/`.sr.srt` files produced in Task 11. Rebuild so the script is in the image, then run:
 ```bash
@@ -2467,18 +2467,18 @@ docker compose build transcribe
 docker compose run --rm --entrypoint python transcribe scripts/compare_llms.py <model-1> <model-2> <model-3> --srt mk=/media/<file>.mk.srt
 ```
 
-- [ ] **Step 3: User chooses**
+- [x] **Step 3: User chooses**
 
 Show the user the side-by-side output and the time each model took. The choice is theirs. Do not pick silently.
 
-- [ ] **Step 4: Set the chosen default in both places**
+- [x] **Step 4: Set the chosen default in both places**
 
 In `src/localtranscribe/cli.py`, set `DEFAULT_LLM = "<chosen-model>"`. In `docker-compose.yml`, set `LOCALTRANSCRIBE_LLM: ${LOCALTRANSCRIBE_LLM:-<chosen-model>}`. The two values must be identical.
 
 Run: `uv run pytest -v`
 Expected: all pass.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add scripts/compare_llms.py src/localtranscribe/cli.py docker-compose.yml
@@ -2493,7 +2493,7 @@ git commit -m "feat: choose default translation model by side-by-side comparison
 - Create: `README.md`
 - Modify: `CLAUDE.md` (replace the "Status" section; add commands and layout)
 
-- [ ] **Step 1: Write `README.md`**
+- [x] **Step 1: Write `README.md`**
 
 ````markdown
 # localTranscribe
@@ -2545,7 +2545,7 @@ docker push <registry>/<user>/localtranscribe:<tag>
 ```
 ````
 
-- [ ] **Step 2: Update `CLAUDE.md`**
+- [x] **Step 2: Update `CLAUDE.md`**
 
 Replace the `## Status` section with:
 
@@ -2573,7 +2573,7 @@ Regenerate `docker/requirements.lock` from Git Bash, not PowerShell (`>` there w
 - Default LLM lives in two places that must match: `cli.DEFAULT_LLM` and `docker-compose.yml`.
 ````
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add README.md CLAUDE.md
