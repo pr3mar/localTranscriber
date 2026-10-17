@@ -41,6 +41,15 @@
 - Names in Spanish/English sometimes keep Serbian case endings ("Štefa", "Vražalića"). A `--glossary` (below) would help.
 - Try parallel requests (`OLLAMA_NUM_PARALLEL` plus concurrent batches). Measure throughput and GPU load first.
 
+## Restore GPU integration tests
+- Removed 2026-10-17: `tests/integration/test_gpu_pipeline.py` needed one short clip plus a reference transcript per
+  language in `tests/fixtures/audio/` (`<lang>.<ext>` + `<lang>.txt`), and those were never committed.
+- Use CC0 clips (Mozilla Common Voice) so they can be committed to the public repo; never TV/YouTube material.
+- What the tests checked: each engine on the real GPU (sane cue timings, >=60% of reference words found, Cyrillic for mk/sr),
+  and the CLI end to end on mk with `--translate` (target cues inside source cue spans, no empty cues).
+- Gate them behind an env var and a `gpu` pytest marker so host and CI runs skip them; run them inside the container.
+- Until then, `scripts/spike_gpu.py` only checks that both engines load and produce text, not accuracy.
+
 ## Ideas
 - Optional `--glossary` file (names, terms), used both as the Whisper `initial_prompt` and in the translation prompt.
 - Investigate translations shifted by one cue, seen in manual review.

@@ -163,5 +163,5 @@ NeMo and faster-whisper (CTranslate2) each have their own PyTorch / CUDA / cuDNN
 ## 7. Testing
 
 - **Unit tests** (host, `uv run pytest`, no GPU/Docker): cue building, SRT formatting, router, Macedonian and Serbian transliteration, translation batching/parsing/alignment fallback with a fake LLM, CLI skip/overwrite logic.
-- **Integration tests** (in the container, GPU): one short CC0 clip per language (Mozilla Common Voice), asserting the `.srt` exists, timings are monotonic and non-overlapping, and expected words appear (fuzzy match).
+- **Integration tests** (in the container, GPU): removed 2026-10-17 because the CC0 clips were never committed; restoring them is in `docs/backlog.md`.
 - **LLM selection script** (manual, not pass/fail): `scripts/eval_translation.py` translates hand-corrected source subtitles with candidate models and scores them against the hand-corrected translations (chrF, plus the share of lines still in the source language); the winner becomes the default model setting.

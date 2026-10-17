@@ -50,7 +50,7 @@ and the LLM never compete for VRAM.
 ## Testing
 
 - Unit tests run on the host without GPU/Docker: `uv run pytest`.
-- Integration tests run inside the container on GPU with short CC0 clips (Mozilla Common Voice).
+- No automated GPU tests yet (see `docs/backlog.md`); `scripts/spike_gpu.py` is a manual smoke test.
 
 ## Commands
 
@@ -59,7 +59,6 @@ uv sync                                   # host dev environment (no GPU libs)
 uv run pytest                             # unit tests on the host
 docker compose build transcribe           # build the GPU image
 docker compose run --rm transcribe /media/<path> --lang mk --translate
-docker compose run --rm -e LOCALTRANSCRIBE_GPU_TESTS=1 --entrypoint python transcribe -m pytest -v
 docker compose run --rm --entrypoint python transcribe scripts/spike_gpu.py /media/<clip>   # GPU smoke test
 docker compose run --rm --entrypoint python transcribe scripts/eval_translation.py "/media/<show>/<prefix>*" --models a,b   # compare LLMs
 ```
@@ -76,5 +75,4 @@ Regenerate `docker/requirements.lock` from Git Bash, not PowerShell (`>` there w
 - `src/localtranscribe/` — `audio` (ffmpeg), `engines/` (Parakeet, Whisper), `router`, `cues`,
   `cyrillic`, `srt`, `translate/` (batching + Ollama client), `pipeline` (staged run), `cli`.
 - Heavy GPU libraries are imported only inside engine constructors so unit tests run on the host.
-- `tests/integration/` runs only in the container with `LOCALTRANSCRIBE_GPU_TESTS=1`.
 - Default LLM lives in two places that must match: `cli.DEFAULT_LLM` and `docker-compose.yml`.

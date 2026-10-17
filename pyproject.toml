@@ -23,4 +23,3 @@ packages = ["src/localtranscribe"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-markers = ["gpu: needs an NVIDIA GPU and model downloads; runs inside the container"]
