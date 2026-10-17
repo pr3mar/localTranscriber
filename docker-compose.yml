@@ -1,6 +1,6 @@
 services:
   transcribe:
-    image: ${LOCALTRANSCRIBE_IMAGE:-localtranscribe:latest}
+    image: ${LOCALTRANSCRIBE_IMAGE:-pr3mar/local-transcriber:latest}
     build:
       context: .
       dockerfile: docker/Dockerfile

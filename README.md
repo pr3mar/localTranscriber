@@ -11,10 +11,10 @@ with optional translation into any of those languages (English by default). Runs
 ## Run on a new machine
 
 1. Copy `docker-compose.yml` to the machine.
-2. Set where your media lives and which image to use:
+2. Set where your media lives and pull the image (`pr3mar/local-transcriber:latest` by default;
+   set `LOCALTRANSCRIBE_IMAGE` to use another tag, e.g. `pr3mar/local-transcriber:0.1.0`):
    ```bash
    export MEDIA_DIR=/path/to/videos
-   export LOCALTRANSCRIBE_IMAGE=<registry>/<user>/localtranscribe:<tag>
    docker compose pull
    ```
 3. Transcribe (and optionally translate):
@@ -43,7 +43,13 @@ resumes where it stopped. Macedonian and Serbian subtitles are always Cyrillic.
 ## Build and publish the image
 
 ```bash
-docker compose build transcribe
-docker tag localtranscribe:latest <registry>/<user>/localtranscribe:<tag>
-docker push <registry>/<user>/localtranscribe:<tag>
+docker compose build transcribe            # tags pr3mar/local-transcriber:latest
+docker tag pr3mar/local-transcriber:latest pr3mar/local-transcriber:<version>
+docker push pr3mar/local-transcriber:<version>
+docker push pr3mar/local-transcriber:latest
 ```
+
+## Licence
+
+MIT, see `LICENSE`. The Docker image also bundles [FFmpeg](https://ffmpeg.org/), licensed under
+the LGPL/GPL; its source is available from <https://ffmpeg.org/download.html>.
